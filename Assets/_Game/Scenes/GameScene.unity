@@ -178,6 +178,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1489562363607552663, guid: ce5a2682ddf46544bba002d8d3ff264c, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 15
+      objectReference: {fileID: 0}
     - target: {fileID: 3301759238081345860, guid: ce5a2682ddf46544bba002d8d3ff264c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -364,7 +368,7 @@ MonoBehaviour:
     visualMesh: {fileID: 130634687}
     smokeParticles: {fileID: 0}
     isFront: 1
-    isLeft: 0
+    isLeft: 1
   - collider: {fileID: 1884661648}
     visualMesh: {fileID: 1165607986}
     smokeParticles: {fileID: 0}
@@ -374,7 +378,7 @@ MonoBehaviour:
     visualMesh: {fileID: 130634690}
     smokeParticles: {fileID: 0}
     isFront: 0
-    isLeft: 0
+    isLeft: 1
   - collider: {fileID: 785871779}
     visualMesh: {fileID: 1594942401}
     smokeParticles: {fileID: 0}
