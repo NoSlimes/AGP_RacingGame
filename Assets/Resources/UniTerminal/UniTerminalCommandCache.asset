@@ -46,6 +46,16 @@ MonoBehaviour:
     - System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
     - RacingGame.ConsoleCommandExamples+TestEnum, Assembly-CSharp, Version=0.0.0.0,
       Culture=neutral, PublicKeyToken=null
+  - CommandName: log_example
+    Description: 
+    Flags: 0
+    DeclaringTypeName: RacingGame.DLoggerExamples, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
+    MethodName: LogExample
+    ParameterTypes:
+    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    - System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
   - CommandName: enableCheats
     Description: Enables cheat commands.
     Flags: 0
