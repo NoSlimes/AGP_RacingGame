@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace RacingGame
 {
-    public class ConsoleCommandExamples : MonoBehaviour
+    public class ConsoleCommandExamples 
     {
         [ConsoleCommand("test_bool")]
         private static void TestBool(CommandResponseDelegate resp, bool test123)
