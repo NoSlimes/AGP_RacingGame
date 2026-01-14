@@ -12,7 +12,7 @@
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "fcc224425230094aafd2ad45368aa175422d14de"
+      "hash": "1a9e420b8b12949647640b5c598a601174e56e8e"
     },
     "com.noslimes.unityutils": {
       "version": "https://github.com/NoSlimes/UnityUtils.git",
