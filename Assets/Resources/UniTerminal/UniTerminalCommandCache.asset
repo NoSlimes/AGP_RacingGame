@@ -16,30 +16,36 @@ MonoBehaviour:
   - CommandName: test_bool
     Description: 
     Flags: 0
-    DeclaringTypeName: RacingGame.Testesrst, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
+    DeclaringTypeName: RacingGame.ConsoleCommandExamples, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
     MethodName: TestBool
     ParameterTypes:
+    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     - System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
   - CommandName: test_enum
     Description: 
     Flags: 0
-    DeclaringTypeName: RacingGame.Testesrst, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
+    DeclaringTypeName: RacingGame.ConsoleCommandExamples, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
     MethodName: TestEnumCommand
     ParameterTypes:
-    - RacingGame.Testesrst+TestEnum, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
+    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    - RacingGame.ConsoleCommandExamples+TestEnum, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
   - CommandName: test_both
     Description: 
     Flags: 0
-    DeclaringTypeName: RacingGame.Testesrst, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
+    DeclaringTypeName: RacingGame.ConsoleCommandExamples, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
     MethodName: TestBoth
     ParameterTypes:
+    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
     - System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
-    - RacingGame.Testesrst+TestEnum, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
+    - RacingGame.ConsoleCommandExamples+TestEnum, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
   - CommandName: enableCheats
     Description: Enables cheat commands.
     Flags: 0
