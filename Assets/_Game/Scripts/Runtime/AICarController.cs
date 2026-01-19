@@ -36,7 +36,7 @@ namespace RacingGame
 
         public void PostInitialize()
         {
-            GameManager.Instance.StateMachine.GetState<GameState>().RegisterTickable(this);
+            GameManager.Instance.RegisterTickable(this);
             
             if (pCG)
             {

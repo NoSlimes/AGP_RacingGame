@@ -74,7 +74,7 @@ namespace RacingGame
                 return;
             }
 
-            var oldState = states[type];
+            var oldState = currentState;
             oldState?.Exit();
             currentState = nextState;
             currentState.Enter();

@@ -11,15 +11,17 @@ namespace RacingGame
     {
         private static readonly DLogCategory logCategory = new("GameManager", Color.green);
         private static readonly DLogCategory stateMachineLogCategory = new("StateMachine", Color.yellowGreen);
-
         public static GameManager Instance { get; private set; }
-        public StateMachine StateMachine { get; private set; }
 
-        public bool IsPaused => Instance.StateMachine.CurrentState is not null and PauseState;
+        private readonly List<ITickable> tickables = new();
+
+        public StateMachine StateMachine { get; private set; }
+        public bool IsPaused => StateMachine?.CurrentState is PauseState;
+
         public event StateMachine.StateChangedDelegate StateChanged
         {
-            add => StateChanged += value;
-            remove => StateChanged -= value;
+            add => StateMachine.OnStateChanged += value;
+            remove => StateMachine.OnStateChanged -= value;
         }
 
         private void Awake()
@@ -39,7 +41,41 @@ namespace RacingGame
                 new PauseState(this, stateMachineLogCategory)
             }, stateMachineLogCategory);
 
+            var initialTickables = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).OfType<ITickable>();
+            foreach (var t in initialTickables) RegisterTickable(t);
+
             DLogger.LogDev("GameManager initialized.", category: logCategory);
+        }
+
+        public void RegisterTickable(ITickable tickable)
+        {
+            if (tickable == null || tickables.Contains(tickable)) return;
+
+            tickables.Add(tickable);
+            tickables.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+        }
+
+        public void UnregisterTickable(ITickable tickable)
+        {
+            if (tickables.Remove(tickable))
+            {
+
+            }
+        }
+
+        public void UpdateTickables()
+        {
+            for (int i = 0; i < tickables.Count; i++) tickables[i].Tick();
+        }
+
+        public void LateUpdateTickables()
+        {
+            for (int i = 0; i < tickables.Count; i++) tickables[i].LateTick();
+        }
+
+        public void FixedUpdateTickables()
+        {
+            for (int i = 0; i < tickables.Count; i++) tickables[i].FixedTick();
         }
 
         private void Update() => StateMachine.Update();
@@ -53,22 +89,14 @@ namespace RacingGame
 
         private void OnDisable()
         {
-            if (!InputManager.Instance)
-                return;
-
-            InputManager.Instance.UnregisterActionCallback("Cancel", OnPausePressed, InputManager.InputEventType.Performed);
+            if (InputManager.Instance)
+                InputManager.Instance.UnregisterActionCallback("Cancel", OnPausePressed, InputManager.InputEventType.Performed);
         }
 
         private void OnPausePressed(UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
-            if (IsPaused)
-            {
-                StateMachine.ChangeState<GameState>();
-            }
-            else
-            {
-                StateMachine.ChangeState<PauseState>();
-            }
+            if (IsPaused) StateMachine.ChangeState<GameState>();
+            else StateMachine.ChangeState<PauseState>();
         }
     }
 
@@ -80,107 +108,50 @@ namespace RacingGame
         public GameManagerState(GameManager gameManager, DLogCategory logCategory)
         {
             GameManager = gameManager;
-            LogCategory = logCategory ?? DLogCategory.Log;
+            LogCategory = logCategory;
         }
     }
 
     public class GameState : GameManagerState
     {
-        private readonly List<ITickable> tickables = new();
-        
-        public GameState(GameManager gameManager, DLogCategory logCategory) : base(gameManager, logCategory)
-        {
-            if (!Application.isPlaying)
-                return;
-
-            var tickables = GameObject.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).OfType<ITickable>();
-            foreach (var tickable in tickables)
-            {
-                this.tickables.Add(tickable);
-            }
-        }
-
-        public void RegisterTickable(ITickable tickable)
-        {
-            if (!tickables.Contains(tickable))
-            {
-                tickables.Add(tickable);
-            }
-
-            tickables.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-        }
-
-        public void UnregisterTickable(ITickable tickable)
-        {
-            if (tickables.Contains(tickable))
-            {
-                tickables.Remove(tickable);
-            }
-
-            tickables.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-        }
+        public GameState(GameManager gameManager, DLogCategory logCategory) : base(gameManager, logCategory) { }
 
         public override void Enter()
         {
-            base.Enter();
-
-            DLogger.LogDev("Entered GameState.", category: LogCategory);
+            DLogger.LogDev("Entered GameState - Race Running.", category: LogCategory);
         }
 
         public override void Update()
         {
-            base.Update();
-            foreach (var tickable in tickables)
-            {
-                tickable.Tick();
-            }
+            GameManager.UpdateTickables();
         }
 
         public override void LateUpdate()
         {
-            base.LateUpdate();
-            foreach (var tickable in tickables)
-            {
-                tickable.LateTick();
-            }
+            GameManager.LateUpdateTickables();
         }
 
         public override void FixedUpdate()
         {
-            base.FixedUpdate();
-            foreach (var tickable in tickables)
-            {
-                tickable.FixedTick();
-            }
+            GameManager.FixedUpdateTickables();
         }
     }
 
     public class PauseState : GameManagerState
     {
+        private float prevTimeScale = 1f;
         public PauseState(GameManager gameManager, DLogCategory logCategory) : base(gameManager, logCategory) { }
-
-        private float prevTimeScale = 0f;
-
-        public event Action OnPause;
-        public event Action OnResume;
 
         public override void Enter()
         {
-            base.Enter();
-
             prevTimeScale = Time.timeScale;
             Time.timeScale = 0f;
-
-            OnPause?.Invoke();
             DLogger.LogDev("Game Paused.", category: LogCategory);
         }
+
         public override void Exit()
         {
-            base.Exit();
-
             Time.timeScale = prevTimeScale;
-
-            OnResume?.Invoke();
             DLogger.LogDev("Game Resumed.", category: LogCategory);
         }
     }

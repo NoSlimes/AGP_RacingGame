@@ -1,6 +1,7 @@
+using RacingGame;
 using UnityEngine;
 
-public class WheelControl : MonoBehaviour
+public class WheelControl : TickableBehaviour
 {
     public Transform wheelModel;
 
@@ -22,7 +23,7 @@ public class WheelControl : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    public override void Tick()
     {
         // Get the Wheel collider's world pose values and
         // use them to set the wheel model's position and rotation

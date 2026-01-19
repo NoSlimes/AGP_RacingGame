@@ -1,9 +1,9 @@
 using UnityEngine;
 namespace RacingGame
 {
-   
 
-    public class CarControl : MonoBehaviour
+    [RequireComponent(typeof(Rigidbody), typeof(CarInputComponent))]
+    public class CarControl : TickableBehaviour
     {
         [Header("Car Properties")]
         public float motorTorque = 2000f;
@@ -38,7 +38,7 @@ namespace RacingGame
         }
 
         // FixedUpdate is called at a fixed time interval
-        void FixedUpdate()
+        public override void FixedTick()
         {
             // Read the Vector2 input from the new Input System
             Vector2 inputVector = CarInput.CarInputs.MoveInput;

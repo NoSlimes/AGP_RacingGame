@@ -20,6 +20,9 @@ namespace RacingGame
 
         public void Deinitialize()
         {
+            if (InputManager.Instance == null)
+                return;
+
             InputManager.Instance.OnMove -= OnMove;
             InputManager.Instance.UnregisterActionCallback("Brake", OnBrake, InputManager.InputEventType.Performed | InputManager.InputEventType.Canceled);
             InputManager.Instance.UnregisterActionCallback("Nitro", OnNitro, InputManager.InputEventType.Performed | InputManager.InputEventType.Canceled);
