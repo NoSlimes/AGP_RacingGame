@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 namespace RacingGame
 {
     [RequireComponent(typeof(Rigidbody))]
-    [RequireComponent(typeof(ICarInputs))]
+    [RequireComponent(typeof(CarInputComponent))]
     public class carr_THIS_IS_AI_GENERATED : MonoBehaviour, ITickable
     {
         [System.Serializable]
@@ -53,14 +53,14 @@ namespace RacingGame
 
         private ParticleSystem _exhaustInstance;
 
-        private ICarInputs _carInputs;
+        private CarInputComponent _carInputs;
 
         private void Awake()
         {
             _rb = GetComponent<Rigidbody>();
             _rb.centerOfMass = new Vector3(0, centerOfMassOffset, 0);
 
-            _carInputs = GetComponent<ICarInputs>();
+            _carInputs = GetComponent<CarInputComponent>();
 
             // Auto-Tune Suspension to fix the "falling down" bug
             foreach (var w in wheels)
@@ -94,8 +94,9 @@ namespace RacingGame
 
         public void Tick()
         {
-            _inputMove = _carInputs.MoveInput;
-            _isBraking = _carInputs.BrakeInput;
+            _inputMove = _carInputs.CarInputs.MoveInput;
+            _isBraking = _carInputs.CarInputs.BrakeInput;
+            _isNitro = _carInputs.CarInputs.NitroInput;
 
             UpdateEngineAudio();
             UpdateParticles();

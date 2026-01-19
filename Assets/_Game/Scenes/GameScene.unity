@@ -286,7 +286,7 @@ PrefabInstance:
       addedObject: {fileID: 130634684}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2ad71c09e9fdd14408a17c8705e7f5ea, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 130634685}
+      addedObject: {fileID: 130634686}
     - targetCorrespondingSourceObject: {fileID: 9181669327626173419, guid: 2ad71c09e9fdd14408a17c8705e7f5ea, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1089455768}
@@ -376,7 +376,7 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 1
---- !u!114 &130634685
+--- !u!114 &130634686
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -385,9 +385,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 130634675}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 09026244c0f7f974eba3558c91e160a2, type: 3}
+  m_Script: {fileID: 11500000, guid: c5df413c9ce1e6f4587a6beb54d1c763, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RacingGame.PlayerCarController
+  m_EditorClassIdentifier: Assembly-CSharp::RacingGame.CarInputComponent
+  _carInputs:
+    rid: 8684037837312229442
+  references:
+    version: 2
+    RefIds:
+    - rid: 8684037837312229442
+      type: {class: PlayerCarInputs, ns: RacingGame, asm: Assembly-CSharp}
+      data: 
 --- !u!1 &150276493
 GameObject:
   m_ObjectHideFlags: 0
