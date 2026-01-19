@@ -20,6 +20,11 @@ namespace RacingGame
 
         private readonly DLogCategory logCategory;
 
+        public State CurrentState => currentState;
+
+        public delegate void StateChangedDelegate(State newState, State oldState);
+        public event StateChangedDelegate OnStateChanged;
+
         public StateMachine(IList<State> states, DLogCategory logCategory = null)
         {
             foreach (State state in states)
@@ -69,9 +74,12 @@ namespace RacingGame
                 return;
             }
 
-            currentState?.Exit();
+            var oldState = states[type];
+            oldState?.Exit();
             currentState = nextState;
             currentState.Enter();
+
+            OnStateChanged?.Invoke(nextState, oldState);
         }
 
         public T GetState<T>() where T : State

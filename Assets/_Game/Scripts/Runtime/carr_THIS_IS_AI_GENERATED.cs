@@ -7,7 +7,7 @@ namespace RacingGame
 {
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(ICarInputs))]
-    public class carr_THIS_IS_AI_GENERATED : MonoBehaviour
+    public class carr_THIS_IS_AI_GENERATED : MonoBehaviour, ITickable
     {
         [System.Serializable]
         public struct Wheel
@@ -92,7 +92,7 @@ namespace RacingGame
             }
         }
 
-        private void Update()
+        public void Tick()
         {
             _inputMove = _carInputs.MoveInput;
             _isBraking = _carInputs.BrakeInput;
@@ -102,7 +102,7 @@ namespace RacingGame
             UpdateParticles();
         }
 
-        private void FixedUpdate()
+        public void FixedTick()
         {
             float speedKmh = _rb.linearVelocity.magnitude * 3.6f;
             ApplySteering(speedKmh);
