@@ -22,13 +22,14 @@ namespace RacingGame
         bool First, Second, Third;
         Color c;
 
-        [Header("Bools")]
-        public bool Drifting;
-        public bool Breaking;
+        [HideInInspector] public bool Drifting;
+        [HideInInspector] public bool Breaking;
 
         [Header("Car model parts")]
-        public Transform FrontWheels;
-        public Transform BackWheels;
+        public Transform WheelLF;
+        public Transform WheelRF;
+        public Transform WheelLR;
+        public Transform WheelRR;
 
         [Header("Parameters")]
         public float Acceleration = 30f;
@@ -53,7 +54,7 @@ namespace RacingGame
 
         private void Update()
         {
-            if (inputs.BrakeInput)         
+            if (inputs.BrakeInput)
                 Breaking = true;          
             else
                 Breaking = false;
@@ -95,7 +96,10 @@ namespace RacingGame
                 }
             }
 
-            // Anims?
+            // Anims
+
+            //Wheels
+            UpdateWheelVisuals();
         }
 
         private void FixedUpdate()
@@ -152,9 +156,27 @@ namespace RacingGame
             Rotate = (Steering * direction) * amount;
         }
 
-        private void Speed(float x)
+        void UpdateWheelVisuals()
         {
-            CurrentSpeed = x;
+            float SteerAngle = inputs.MoveInput.x * 15f;
+            float roll = Sphere.linearVelocity.magnitude * Time.deltaTime * 50f;
+
+            ApplyWheel(WheelLF, SteerAngle, roll);
+            ApplyWheel(WheelLF, SteerAngle, roll);
+
+            ApplyWheel(WheelLR, 0f, roll);
+            ApplyWheel(WheelRR, 0f, roll);
+
+        }
+
+        void ApplyWheel(Transform wheel, float steer, float roll)
+        {
+            Vector3 angles = wheel.localEulerAngles;
+
+            angles.y = steer;      // steering
+            angles.z += roll;      // rolling
+
+            wheel.localEulerAngles = angles;
         }
 
     }
