@@ -96,7 +96,6 @@ namespace RacingGame
         {
             _inputMove = _carInputs.MoveInput;
             _isBraking = _carInputs.BrakeInput;
-            _isNitro = _carInputs.NitroInput;
 
             UpdateEngineAudio();
             UpdateParticles();
