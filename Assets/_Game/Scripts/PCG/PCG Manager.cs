@@ -43,21 +43,25 @@ namespace RacingGame
 
         private MeshFilter _meshFilter;
         private MeshRenderer _meshRenderer;
-        
+
         // Finder
-        private Transform _generatedWaypointRoot;
+        private Transform _generatedWaypointsRoot;
         private Transform _generatedWallsRoot;
 
         private void OnEnable()
         {
             EnsureComponents();
-            Generate();
+            if (Application.isPlaying)
+                Generate();
         }
 
         private void OnValidate()
         {
             EnsureComponents();
-            Generate();
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                Generate();
+#endif
         }
 
         private void EnsureComponents()
@@ -74,6 +78,11 @@ namespace RacingGame
         public void Generate()
         {
             ClearPCG();
+
+            _generatedWallsRoot = GetOrCreateChild(transform, "_Generated_Walls");
+
+            Transform wpRootParent = waypointParent ? waypointParent : transform;
+            _generatedWaypointsRoot = GetOrCreateChild(wpRootParent, "_Generated_Waypoints");
 
             int usedSeed = randomizeSeed ? Random.Range(int.MinValue / 2, int.MaxValue / 2) : seed;
             var rng = new System.Random(usedSeed);
@@ -107,6 +116,16 @@ namespace RacingGame
             // For AI
             if (generateWaypoints)
                 GenerateWaypointsObjects(Centerline);
+        }
+
+        private Transform GetOrCreateChild(Transform parent, string name)
+        {
+            var t = parent.Find(name);
+            if (t != null) return t;
+
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            return go.transform;
         }
 
         private List<Vector3> SmoothRing(List<Vector3> points, float amount, int iterations)
@@ -276,7 +295,7 @@ namespace RacingGame
             Vector3 outward = Vector3.Cross(dir, Vector3.up).normalized * sideSign;
             Vector3 p = pos + outward * wallOffset;
 
-            var go = Instantiate(wallPrefab, p, Quaternion.LookRotation(dir, Vector3.up), transform);
+            var go = Instantiate(wallPrefab, p, Quaternion.LookRotation(dir, Vector3.up), _generatedWallsRoot);
             go.name = $"Wall_{sideSign}_{i}";
         }
 
@@ -310,20 +329,20 @@ namespace RacingGame
                     var wp = new GameObject($"Waypoint_{wpIndex++}");
                     wp.transform.position = pos;
                     wp.transform.rotation = Quaternion.LookRotation(forward, up);
-                    wp.transform.SetParent(parent, true);
+                    wp.transform.SetParent(_generatedWaypointsRoot, true);
                 }
             }
         }
 
         private void ClearPCG()
         {
-            if (waypointParent != null)
-            {
-                var wpRoot = waypointParent.Find("_Generated_Waypoints");
-                if (wpRoot != null) DestroyChildren(wpRoot);
-            }
-            
-            var wallRoot = waypointParent.Find("_Generated_Walls");
+            // Clear waypoints
+            Transform wpRootParent = waypointParent ? waypointParent : transform;
+            var wpRoot = wpRootParent.Find("_Generated_Waypoints");
+            if (wpRoot != null) DestroyChildren(wpRoot);
+
+            // Clear walls
+            var wallRoot = transform.Find("_Generated_Walls");
             if (wallRoot != null) DestroyChildren(wallRoot);
         }
 
