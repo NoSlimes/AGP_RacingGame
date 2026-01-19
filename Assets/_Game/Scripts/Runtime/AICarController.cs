@@ -11,7 +11,7 @@ namespace RacingGame
         public bool BrakeInput { get; private set; }
         public bool NitroInput { get; private set; }
 
-        private PlayerCarController playerCar;
+        private PlayerCarInputs playerCar;
         private Vector3 targetWP;
 
         [SerializeField]
@@ -29,7 +29,7 @@ namespace RacingGame
                 wayPoints = pCG.Centerline;
             }
             
-            playerCar = FindAnyObjectByType<PlayerCarController>();
+            //playerCar = FindAnyObjectByType<PlayerCarInputs>();
 
             transform.position = wayPoints[currentindex];
             currentindex++;

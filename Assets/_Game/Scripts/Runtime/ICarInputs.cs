@@ -7,5 +7,9 @@ namespace RacingGame
     {
         Vector2 MoveInput { get; }
         bool BrakeInput { get; }
+        public bool NitroInput { get; }
+
+        void Initialize(Transform ownerTransform);
+        void Deinitialize();
     }
 }
