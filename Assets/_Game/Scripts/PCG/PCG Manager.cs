@@ -43,6 +43,10 @@ namespace RacingGame
 
         private MeshFilter _meshFilter;
         private MeshRenderer _meshRenderer;
+        
+        // Finder
+        private Transform _generatedWaypointRoot;
+        private Transform _generatedWallsRoot;
 
         private void OnEnable()
         {
@@ -69,7 +73,7 @@ namespace RacingGame
 
         public void Generate()
         {
-            Clear();
+            ClearPCG();
 
             int usedSeed = randomizeSeed ? Random.Range(int.MinValue / 2, int.MaxValue / 2) : seed;
             var rng = new System.Random(usedSeed);
@@ -280,6 +284,8 @@ namespace RacingGame
         private void GenerateWaypointsObjects(List<Vector3> center)
         {
             Transform parent = waypointParent ? waypointParent : transform;
+            Vector3 up = transform.up;
+
             float acc = 0f;
             int wpIndex = 0;
 
@@ -287,26 +293,45 @@ namespace RacingGame
             {
                 float d = Vector3.Distance(center[i - 1], center[i]);
                 acc += d;
+
                 if (acc >= waypointEveryMeters)
                 {
                     acc = 0f;
-                    var wp = new GameObject($"Waypoint_{wpIndex++}");
-                    wp.transform.SetParent(parent);
-                    wp.transform.position = center[i];
-
+                    Vector3 pos = center[i];
                     Vector3 forward = (center[(i + 1) % center.Count] - center[(i - 1 + center.Count) % center.Count])
                         .normalized;
-                    if (forward.sqrMagnitude > 0.0001f)
-                        wp.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+                    forward = Vector3.ProjectOnPlane(transform.forward, up);
+
+                    if (forward.sqrMagnitude < 0.0001f)
+                    {
+                        forward = Vector3.ProjectOnPlane(transform.forward, up);
+                    }
+
+                    var wp = new GameObject($"Waypoint_{wpIndex++}");
+                    wp.transform.position = pos;
+                    wp.transform.rotation = Quaternion.LookRotation(forward, up);
+                    wp.transform.SetParent(parent, true);
                 }
             }
         }
 
-        private void Clear()
+        private void ClearPCG()
         {
-            for (int i = transform.childCount - 1; i >= 0; i--)
+            if (waypointParent != null)
             {
-                var child = transform.GetChild(i);
+                var wpRoot = waypointParent.Find("_Generated_Waypoints");
+                if (wpRoot != null) DestroyChildren(wpRoot);
+            }
+            
+            var wallRoot = waypointParent.Find("_Generated_Walls");
+            if (wallRoot != null) DestroyChildren(wallRoot);
+        }
+
+        private void DestroyChildren(Transform root)
+        {
+            for (int i = root.childCount - 1; i >= 0; i--)
+            {
+                var child = root.GetChild(i);
 #if UNITY_EDITOR
                 if (!Application.isPlaying)
                 {
