@@ -619,9 +619,61 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1401270804204914197, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_Mass
+      value: 1400
+      objectReference: {fileID: 0}
     - target: {fileID: 3574116175340734853, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_Name
       value: car
+      objectReference: {fileID: 0}
+    - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionDistance
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.damper
+      value: 4400
+      objectReference: {fileID: 0}
+    - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.spring
+      value: 34000
+      objectReference: {fileID: 0}
+    - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionDistance
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.damper
+      value: 4400
+      objectReference: {fileID: 0}
+    - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.spring
+      value: 34000
+      objectReference: {fileID: 0}
+    - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionDistance
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.damper
+      value: 4400
+      objectReference: {fileID: 0}
+    - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.spring
+      value: 34000
+      objectReference: {fileID: 0}
+    - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionDistance
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.damper
+      value: 4400
+      objectReference: {fileID: 0}
+    - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.spring
+      value: 34000
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
