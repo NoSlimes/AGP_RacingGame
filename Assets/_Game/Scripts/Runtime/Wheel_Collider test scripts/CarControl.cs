@@ -16,11 +16,11 @@ namespace RacingGame
         private WheelControl[] wheels;
         private Rigidbody rigidBody;
 
-        private ICarInputs CarInputs; // Reference to the new input system
+        private CarInputComponent CarInput; // Reference to the new input system
 
         void Awake()
         {
-            CarInputs = GetComponent<ICarInputs>(); // Initialize Input Actions
+            CarInput = GetComponent<CarInputComponent>(); // Initialize Input Actions
         }
 
         // Start is called before the first frame update
@@ -41,7 +41,7 @@ namespace RacingGame
         void FixedUpdate()
         {
             // Read the Vector2 input from the new Input System
-            Vector2 inputVector = CarInputs.MoveInput;
+            Vector2 inputVector = CarInput.CarInputs.MoveInput;
 
             // Get player input for acceleration and steering
             float vInput = inputVector.y; // Forward/backward input

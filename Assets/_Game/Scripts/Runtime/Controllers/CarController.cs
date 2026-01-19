@@ -8,7 +8,7 @@ namespace RacingGame
 {
     public class CarController : MonoBehaviour
     {
-        private ICarInputs inputs;
+        [SerializeField] private ICarInputs inputs;
 
         public Transform CarMesh;
         public Transform CarNormal;
@@ -22,13 +22,14 @@ namespace RacingGame
         bool First, Second, Third;
         Color c;
 
-        [Header("Bools")]
-        public bool Drifting;
-        public bool Breaking;
+        [HideInInspector] public bool Drifting;
+        [HideInInspector] public bool Breaking;
 
         [Header("Car model parts")]
-        public Transform FrontWheels;
-        public Transform BackWheels;
+        public Transform WheelLF;
+        public Transform WheelRF;
+        public Transform WheelLR;
+        public Transform WheelRR;
 
         [Header("Parameters")]
         public float Acceleration = 30f;
@@ -53,7 +54,8 @@ namespace RacingGame
 
         private void Update()
         {
-            if (inputs.BrakeInput)         
+            // Brakes
+            if (inputs.BrakeInput)
                 Breaking = true;          
             else
                 Breaking = false;
@@ -61,6 +63,7 @@ namespace RacingGame
             // follow collider
             transform.position = Sphere.transform.position - new Vector3(0, 0.4f, 0);
 
+            // Acceleration and Nitro
             if (inputs.MoveInput.y > 0)
             {
                 if (nitroActive)
@@ -69,6 +72,7 @@ namespace RacingGame
                 speed = Acceleration;
             }
 
+            // Steering
             if (Mathf.Abs(inputs.MoveInput.x) > 0.01f)
             {
                 int dir = inputs.MoveInput.x > 0 ? 1 : -1;
@@ -76,6 +80,7 @@ namespace RacingGame
                 Steer(dir, amount);
             }
 
+            // Nitro
             if (inputs.NitroInput)
                 NitroBoost();
 
@@ -95,7 +100,10 @@ namespace RacingGame
                 }
             }
 
-            // Anims?
+            // Anims
+
+            //Wheels
+            //UpdateWheelVisuals(); I see this in other scripts so I deactivate them here for now
         }
 
         private void FixedUpdate()
@@ -133,6 +141,7 @@ namespace RacingGame
             // Drifting boost (Like Mario :D)
         }
 
+        // Activates the notro timer
         public void NitroBoost()
         {
             if (nitroActive || nitroOnCooldown)
@@ -152,9 +161,27 @@ namespace RacingGame
             Rotate = (Steering * direction) * amount;
         }
 
-        private void Speed(float x)
+        void UpdateWheelVisuals()
         {
-            CurrentSpeed = x;
+            float SteerAngle = inputs.MoveInput.x * 15f;
+            float roll = Sphere.linearVelocity.magnitude * Time.deltaTime * 50f;
+
+            ApplyWheel(WheelLF, SteerAngle, roll);
+            ApplyWheel(WheelLF, SteerAngle, roll);
+
+            ApplyWheel(WheelLR, 0f, roll);
+            ApplyWheel(WheelRR, 0f, roll);
+
+        }
+
+        void ApplyWheel(Transform wheel, float steer, float roll)
+        {
+            Vector3 angles = wheel.localEulerAngles;
+
+            angles.y = steer;      // steering
+            angles.z += roll;      // rolling
+
+            wheel.localEulerAngles = angles;
         }
 
     }

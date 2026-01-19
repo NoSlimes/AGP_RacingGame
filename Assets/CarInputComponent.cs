@@ -15,13 +15,15 @@ namespace RacingGame
     {
         [SerializeReference] private ICarInputs _carInputs;
 
+        private bool hasStarted = false;
+
         public ICarInputs CarInputs => _carInputs;
 
         public void SetInputs(ICarInputs inputs)
         {
             if (inputs == null)
             {
-                DLogger.LogDevError("CarInputComponent.SetInputs was given null inputs.");
+                DLogger.LogDevError("CarInputComponent.SetInputs was given null inputs.", this);
             }
 
             _carInputs = inputs;
@@ -29,12 +31,24 @@ namespace RacingGame
 
         private void OnEnable()
         {
+            if(CarInputs == null)
+            {
+                DLogger.LogDevError("CarInputComponent.CarInputs has not been set.", this);
+                return;
+            }
+
             CarInputs.Initialize(transform);
+
+            if(hasStarted)
+            {
+                CarInputs.PostInitialize();
+            }
         }
 
         private void Start()
         {
-            CarInputs.PostInitialize();
+            CarInputs?.PostInitialize();
+            hasStarted = true;
         }
 
         private void OnDisable()
@@ -66,7 +80,7 @@ namespace RacingGame
         {
             serializedObject.Update();
 
-            int currentIndex = GetCurrentIndex() + 1; 
+            int currentIndex = GetCurrentIndex() + 1;
 
             EditorGUILayout.Space();
 
@@ -74,7 +88,7 @@ namespace RacingGame
 
             if (newIndex != currentIndex)
             {
-                if (newIndex == 0) 
+                if (newIndex == 0)
                 {
                     _carInputsProp.managedReferenceValue = null;
                 }
