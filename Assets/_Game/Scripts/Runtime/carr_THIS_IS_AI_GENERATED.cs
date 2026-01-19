@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 namespace RacingGame
 {
     [RequireComponent(typeof(Rigidbody))]
+    [RequireComponent(typeof(ICarInputs))]
     public class carr_THIS_IS_AI_GENERATED : MonoBehaviour
     {
         [System.Serializable]
@@ -50,34 +51,16 @@ namespace RacingGame
         private bool _isBraking;
         private bool _isNitro;
 
-        private InputAction _moveAction;
-        private InputAction _brakeAction;
-        private InputAction _nitroAction;
-
         private ParticleSystem _exhaustInstance;
+
+        private ICarInputs _carInputs;
 
         private void Awake()
         {
             _rb = GetComponent<Rigidbody>();
             _rb.centerOfMass = new Vector3(0, centerOfMassOffset, 0);
 
-            // Setup Input Actions
-            _moveAction = new InputAction("Move", binding: "<Gamepad>/leftStick");
-            _moveAction.AddCompositeBinding("2DVector")
-                .With("Up", "<Keyboard>/w")
-                .With("Down", "<Keyboard>/s")
-                .With("Left", "<Keyboard>/a")
-                .With("Right", "<Keyboard>/d");
-
-            _brakeAction = new InputAction("Brake", binding: "<Keyboard>/space");
-            _brakeAction.AddBinding("<Gamepad>/buttonSouth");
-
-            _nitroAction = new InputAction("Nitro", binding: "<Keyboard>/leftShift");
-            _nitroAction.AddBinding("<Gamepad>/rightTrigger");
-
-            _moveAction.Enable();
-            _brakeAction.Enable();
-            _nitroAction.Enable();
+            _carInputs = GetComponent<ICarInputs>();
 
             // Auto-Tune Suspension to fix the "falling down" bug
             foreach (var w in wheels)
@@ -109,18 +92,11 @@ namespace RacingGame
             }
         }
 
-        private void OnDisable()
-        {
-            _moveAction.Disable();
-            _brakeAction.Disable();
-            _nitroAction.Disable();
-        }
-
         private void Update()
         {
-            _inputMove = _moveAction.ReadValue<Vector2>();
-            _isBraking = _brakeAction.ReadValue<float>() > 0.1f;
-            _isNitro = _nitroAction.ReadValue<float>() > 0.1f;
+            _inputMove = _carInputs.MoveInput;
+            _isBraking = _carInputs.BrakeInput;
+            _isNitro = _carInputs.NitroInput;
 
             UpdateEngineAudio();
             UpdateParticles();
