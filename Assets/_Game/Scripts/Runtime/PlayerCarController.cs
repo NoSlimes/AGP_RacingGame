@@ -12,19 +12,18 @@ namespace RacingGame
         private void OnEnable()
         {
             InputManager.Instance.OnMove += OnMove;
-            InputManager.Instance.RegisterActionCallback("Brake", OnBrake, UnityEngine.InputSystem.InputActionPhase.Performed);
-            InputManager.Instance.RegisterActionCallback("Brake", OnBrake, UnityEngine.InputSystem.InputActionPhase.Canceled);
-            InputManager.Instance.RegisterActionCallback("Nitro", OnNitro, UnityEngine.InputSystem.InputActionPhase.Performed);
-            InputManager.Instance.RegisterActionCallback("Nitro", OnNitro, UnityEngine.InputSystem.InputActionPhase.Canceled);
+            InputManager.Instance.RegisterActionCallback("Brake", OnBrake, InputManager.InputEventType.Performed | InputManager.InputEventType.Canceled);
+            InputManager.Instance.RegisterActionCallback("Nitro", OnNitro, InputManager.InputEventType.Performed | InputManager.InputEventType.Canceled);
         }
 
         private void OnDisable()
         {
+            if (!InputManager.Instance)
+                return;
+
             InputManager.Instance.OnMove -= OnMove;
-            InputManager.Instance.UnregisterActionCallback("Brake", OnBrake, UnityEngine.InputSystem.InputActionPhase.Performed);
-            InputManager.Instance.UnregisterActionCallback("Brake", OnBrake, UnityEngine.InputSystem.InputActionPhase.Canceled);
-            InputManager.Instance.UnregisterActionCallback("Nitro", OnNitro, UnityEngine.InputSystem.InputActionPhase.Performed);
-            InputManager.Instance.UnregisterActionCallback("Nitro", OnNitro, UnityEngine.InputSystem.InputActionPhase.Canceled);
+            InputManager.Instance.UnregisterActionCallback("Brake", OnBrake, InputManager.InputEventType.Performed | InputManager.InputEventType.Canceled);
+            InputManager.Instance.UnregisterActionCallback("Nitro", OnNitro, InputManager.InputEventType.Performed | InputManager.InputEventType.Canceled);
         }
 
         private void OnMove(UnityEngine.InputSystem.InputAction.CallbackContext context)

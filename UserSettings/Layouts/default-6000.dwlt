@@ -22692,7 +22692,7 @@ MonoBehaviour:
       () (at ./Library/PackageCache/com.noslimes.uniterminal@1a9e420b8b12/Scripts/Runtime/ConsoleCommandRegistry.cs:186)
 
 '
-  _splitterPosition: 129.40002
+  _splitterPosition: 162
 --- !u!114 &13
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -22715,7 +22715,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 43
+    y: 0
     width: 1920
     height: 36
   m_SerializedDataModeController:
@@ -22802,20 +22802,6 @@ MonoBehaviour:
       displayed: 1
       id: Services/AI
       index: 5
-      contents: '{"m_Layout":4,"m_Collapsed":false,"m_Folded":false,"m_Floating":false,"m_FloatingSnapOffset":{"x":0.0,"y":0.0},"m_SnapOffsetDelta":{"x":0.0,"y":0.0},"m_FloatingSnapCorner":0,"m_Size":{"x":0.0,"y":0.0},"m_SizeOverridden":false}'
-      floating: 0
-      collapsed: 0
-      snapOffset: {x: 0, y: 0}
-      snapOffsetDelta: {x: 0, y: 0}
-      snapCorner: 0
-      layout: 4
-      size: {x: 0, y: 0}
-      sizeOverridden: 0
-    - dockPosition: 0
-      containerId: overlay-toolbar__top
-      displayed: 1
-      id: Services/Unity Version Control
-      index: 6
       contents: '{"m_Layout":4,"m_Collapsed":false,"m_Folded":false,"m_Floating":false,"m_FloatingSnapOffset":{"x":0.0,"y":0.0},"m_SnapOffsetDelta":{"x":0.0,"y":0.0},"m_FloatingSnapCorner":0,"m_Size":{"x":0.0,"y":0.0},"m_SizeOverridden":false}'
       floating: 0
       collapsed: 0
@@ -22937,6 +22923,20 @@ MonoBehaviour:
       layout: 4
       size: {x: 0, y: 0}
       sizeOverridden: 0
+    - dockPosition: 1
+      containerId: overlay-toolbar__top
+      displayed: 0
+      id: Services/Environment
+      index: 8
+      contents: '{"m_Layout":4,"m_Collapsed":false,"m_Folded":false,"m_Floating":false,"m_FloatingSnapOffset":{"x":0.0,"y":0.0},"m_SnapOffsetDelta":{"x":0.0,"y":0.0},"m_FloatingSnapCorner":0,"m_Size":{"x":0.0,"y":0.0},"m_SizeOverridden":false}'
+      floating: 0
+      collapsed: 0
+      snapOffset: {x: 0, y: 0}
+      snapOffsetDelta: {x: 0, y: 0}
+      snapCorner: 0
+      layout: 4
+      size: {x: 0, y: 0}
+      sizeOverridden: 0
     - dockPosition: 2
       containerId: overlay-toolbar__top
       displayed: 1
@@ -22951,11 +22951,11 @@ MonoBehaviour:
       layout: 4
       size: {x: 0, y: 0}
       sizeOverridden: 0
-    - dockPosition: 1
+    - dockPosition: 0
       containerId: overlay-toolbar__top
       displayed: 0
-      id: Services/Environment
-      index: 8
+      id: Services/Unity Version Control
+      index: 6
       contents: '{"m_Layout":4,"m_Collapsed":false,"m_Folded":false,"m_Floating":false,"m_FloatingSnapOffset":{"x":0.0,"y":0.0},"m_SnapOffsetDelta":{"x":0.0,"y":0.0},"m_FloatingSnapCorner":0,"m_Size":{"x":0.0,"y":0.0},"m_SizeOverridden":false}'
       floating: 0
       collapsed: 0
@@ -23098,7 +23098,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 79
+    y: 24
     width: 350
     height: 476
   m_SerializedDataModeController:
@@ -23169,8 +23169,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Scene\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 351
-    y: 79
+    x: 352
+    y: 24
     width: 1094
     height: 476
   m_SerializedDataModeController:
@@ -24031,11 +24031,11 @@ MonoBehaviour:
   m_Rotation:
     m_Target: {x: 0.063966274, y: -0.88619757, z: 0.12915568, w: 0.44069612}
     speed: 2
-    m_Value: {x: 0.06376188, y: -0.8867104, z: 0.12923002, w: 0.43929338}
+    m_Value: {x: -0.06395566, y: 0.8860504, z: -0.12913424, w: -0.44062296}
   m_Size:
     m_Target: 7.071068
     speed: 2
-    m_Value: 7.071082
+    m_Value: 7.071068
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -24091,7 +24091,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 581
+    y: 526
     width: 1446
     height: 405
   m_SerializedDataModeController:
@@ -24142,15 +24142,14 @@ MonoBehaviour:
       m_Data: 63886
     m_ExpandedIDs:
     - m_Data: 0
-    - m_Data: 63852
-    - m_Data: 63854
-    - m_Data: 63872
-    - m_Data: 63886
-    - m_Data: 1000000000
+    - m_Data: 47572
+    - m_Data: 47574
+    - m_Data: 47576
+    - m_Data: 47578
     m_RenameOverlay:
       m_UserAcceptedRename: 0
-      m_Name: 2D
-      m_OriginalName: 2D
+      m_Name: 
+      m_OriginalName: 
       m_EditFieldRect:
         serializedVersion: 2
         x: 0
@@ -24158,10 +24157,10 @@ MonoBehaviour:
         width: 0
         height: 0
       m_UserData:
-        m_Data: 63884
+        m_Data: 0
       m_IsWaitingForDelay: 0
       m_IsRenaming: 0
-      m_OriginalEventType: 0
+      m_OriginalEventType: 11
       m_IsRenamingFilename: 1
       m_TrimLeadingAndTrailingWhitespace: 0
       m_ClientGUIView: {fileID: 10}
@@ -24177,7 +24176,12 @@ MonoBehaviour:
     m_SelectedIDs: []
     m_LastClickedID:
       m_Data: 0
-    m_ExpandedIDs: []
+    m_ExpandedIDs:
+    - m_Data: 0
+    - m_Data: 47572
+    - m_Data: 47574
+    - m_Data: 47576
+    - m_Data: 47578
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -24297,8 +24301,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Inspector\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 1447
-    y: 79
+    x: 1448
+    y: 24
     width: 472
     height: 907
   m_SerializedDataModeController:
