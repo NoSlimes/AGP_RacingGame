@@ -32,6 +32,11 @@ namespace RacingGame
             CarInputs.Initialize(transform);
         }
 
+        private void Start()
+        {
+            CarInputs.PostInitialize();
+        }
+
         private void OnDisable()
         {
             CarInputs?.Deinitialize();
