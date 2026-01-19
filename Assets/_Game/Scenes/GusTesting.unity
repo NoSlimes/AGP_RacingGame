@@ -428,7 +428,6 @@ GameObject:
   - component: {fileID: 852508427}
   - component: {fileID: 852508428}
   - component: {fileID: 852508429}
-  - component: {fileID: 852508430}
   m_Layer: 0
   m_Name: Car
   m_TagString: Untagged
@@ -504,21 +503,6 @@ MonoBehaviour:
   nitroMultiplier: 1.8
   nitroDuration: 1.2
   nitroCooldown: 2
---- !u!114 &852508430
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 852508426}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 09026244c0f7f974eba3558c91e160a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RacingGame.PlayerCarController
-  <MoveInput>k__BackingField: {x: 0, y: 0}
-  <BrakeInput>k__BackingField: 0
-  <NitroInput>k__BackingField: 0
 --- !u!1 &959846662
 GameObject:
   m_ObjectHideFlags: 0
@@ -800,6 +784,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3912006932202310599, guid: 11a2818659ffe8348a84f7f47e6d6ec8, type: 3}
+      propertyPath: m_Camera
+      value: 
+      objectReference: {fileID: 201865234}
     - target: {fileID: 7613562527975430234, guid: 11a2818659ffe8348a84f7f47e6d6ec8, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.73173
