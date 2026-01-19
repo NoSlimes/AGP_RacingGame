@@ -15,7 +15,7 @@ namespace RacingGame
     {
         [SerializeReference] private ICarInputs _carInputs;
 
-        public ICarInputs CarInputs { get; private set; }
+        public ICarInputs CarInputs => _carInputs;
 
         public void SetInputs(ICarInputs inputs)
         {
@@ -24,7 +24,7 @@ namespace RacingGame
                 DLogger.LogDevError("CarInputComponent.SetInputs was given null inputs.");
             }
 
-            CarInputs = inputs;
+            _carInputs = inputs;
         }
 
         private void OnEnable()
