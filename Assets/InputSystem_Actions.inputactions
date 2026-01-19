@@ -273,7 +273,7 @@
                 {
                     "name": "down",
                     "id": "5f477edb-fae5-4531-9069-02230b40ae5d",
-                    "path": "",
+                    "path": "<Gamepad>/leftTrigger",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
