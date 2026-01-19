@@ -303,7 +303,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 43
+    y: 0
     width: 1920
     height: 36
   m_SerializedDataModeController:
@@ -582,8 +582,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Game\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 352
-    y: 79
+    x: 353
+    y: 24
     width: 1092
     height: 476
   m_SerializedDataModeController:
@@ -1547,11 +1547,11 @@ MonoBehaviour:
   m_Rotation:
     m_Target: {x: 0.0068375263, y: 0.98947227, z: -0.13590719, w: 0.049592268}
     speed: 2
-    m_Value: {x: 0.0068374164, y: 0.98945636, z: -0.135905, w: 0.04959147}
+    m_Value: {x: 0.006837527, y: 0.9894723, z: -0.1359072, w: 0.04959227}
   m_Size:
     m_Target: 1.9933236
     speed: 2
-    m_Value: 2.0872498
+    m_Value: 1.9933236
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -1607,7 +1607,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 79
+    y: 24
     width: 351
     height: 476
   m_SerializedDataModeController:
@@ -1679,7 +1679,7 @@ MonoBehaviour:
   m_Pos:
     serializedVersion: 2
     x: 0
-    y: 581
+    y: 526
     width: 1445
     height: 405
   m_SerializedDataModeController:
@@ -1730,12 +1730,10 @@ MonoBehaviour:
       m_Data: 48086
     m_ExpandedIDs:
     - m_Data: 0
-    - m_Data: 47758
-    - m_Data: 47760
-    - m_Data: 47762
-    - m_Data: 47764
-    - m_Data: 48074
-    - m_Data: 1000000000
+    - m_Data: 47748
+    - m_Data: 47750
+    - m_Data: 47752
+    - m_Data: 47754
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1768,10 +1766,10 @@ MonoBehaviour:
       m_Data: 0
     m_ExpandedIDs:
     - m_Data: 0
-    - m_Data: 47758
-    - m_Data: 47760
-    - m_Data: 47762
-    - m_Data: 47764
+    - m_Data: 47748
+    - m_Data: 47750
+    - m_Data: 47752
+    - m_Data: 47754
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -24470,8 +24468,8 @@ MonoBehaviour:
     m_TextWithWhitespace: "Inspector\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 1446
-    y: 79
+    x: 1447
+    y: 24
     width: 473
     height: 907
   m_SerializedDataModeController:
