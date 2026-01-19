@@ -19,7 +19,7 @@ namespace RacingGame
 
         private List<Vector3> wayPoints;
         private int currentindex = 0;
-        private float maxSpeed = 5;
+        private float maxSpeed = 50;
         private float currentSpeed = 20;
 
         void Start()
@@ -37,29 +37,45 @@ namespace RacingGame
 
         private void Update()
         {
-            MoveInput = new Vector2(UnityEngine.Random.Range(-1f, 1f), 1f);
-            BrakeInput = UnityEngine.Random.value < 0.1f;
+            //MoveInput = new Vector2(UnityEngine.Random.Range(-1f, 1f), 1f);
+            //BrakeInput = UnityEngine.Random.value < 0.1f;
 
             //just testing a lot
             targetWP = wayPoints[currentindex];
+
             Vector3 dirToMovePosition = (targetWP - transform.position).normalized;
-            float dot = Vector3.Dot(transform.forward, dirToMovePosition);
+            MoveInput = new Vector2(dirToMovePosition.x, dirToMovePosition.z);
+            BrakeInput = ShouldBrake();
+            NitroInput = ShouldBoost();
 
-            float singleStep = 1.0f * Time.deltaTime;
+            //Hard coded movement, just to test the car could read all waypoints. To be removed when Car Controlls are ready.
             transform.position = Vector3.MoveTowards(transform.position, targetWP, currentSpeed * Time.deltaTime);
-            Vector3 newDir = Vector3.RotateTowards(transform.position, dirToMovePosition, singleStep, 0.0f);
-            //transform.rotation = Quaternion.LookRotation(newDir);
 
+            //Rotation
+            float singleStep = 1.0f * Time.deltaTime;
+            Vector3 newDir = Vector3.RotateTowards(transform.forward, dirToMovePosition, singleStep, 0.0f);
+            transform.rotation = Quaternion.LookRotation(newDir);
+
+            //Change Waypoint Index
+            float dot = Vector3.Dot(transform.forward, dirToMovePosition);
             if (dot <= 0)
             {
                 currentindex++;
-                Debug.Log(currentindex);
                 if (currentindex >= wayPoints.Count)
                 {
                     currentindex = 0;
                 }
             }
+        }
 
+        bool ShouldBrake()
+        {
+            return false;
+        }
+
+        bool ShouldBoost()
+        {
+            return false;
         }
     }
 }
