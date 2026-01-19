@@ -7,6 +7,5 @@ namespace RacingGame
     {
         Vector2 MoveInput { get; }
         bool BrakeInput { get; }
-        bool NitroInput { get; }
     }
 }
