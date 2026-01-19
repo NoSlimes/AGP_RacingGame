@@ -7,6 +7,7 @@ using UnityEngine;
 
 namespace RacingGame
 {
+    [DefaultExecutionOrder(-100)]
     public class GameManager : MonoBehaviour
     {
         private static readonly DLogCategory logCategory = new("GameManager", Color.green);
@@ -118,7 +119,7 @@ namespace RacingGame
 
         public override void Enter()
         {
-            DLogger.LogDev("Entered GameState - Race Running.", category: LogCategory);
+            DLogger.LogDev("Entered GameState", category: LogCategory);
         }
 
         public override void Update()

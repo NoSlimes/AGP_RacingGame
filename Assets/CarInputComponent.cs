@@ -17,7 +17,7 @@ namespace RacingGame
 
         private bool hasStarted = false;
 
-        public ICarInputs CarInputs => _carInputs;
+        public ICarInputs Inputs => _carInputs;
 
         public void SetInputs(ICarInputs inputs)
         {
@@ -31,29 +31,29 @@ namespace RacingGame
 
         private void OnEnable()
         {
-            if(CarInputs == null)
+            if(_carInputs == null)
             {
                 DLogger.LogDevError("CarInputComponent.CarInputs has not been set.", this);
                 return;
             }
 
-            CarInputs.Initialize(transform);
+            _carInputs.Initialize(transform);
 
             if(hasStarted)
             {
-                CarInputs.PostInitialize();
+                _carInputs.PostInitialize();
             }
         }
 
         private void Start()
         {
-            CarInputs?.PostInitialize();
+            _carInputs?.PostInitialize();
             hasStarted = true;
         }
 
         private void OnDisable()
         {
-            CarInputs?.Deinitialize();
+            _carInputs?.Deinitialize();
         }
     }
 
