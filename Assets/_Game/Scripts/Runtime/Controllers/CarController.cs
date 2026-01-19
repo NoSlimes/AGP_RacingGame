@@ -8,7 +8,7 @@ namespace RacingGame
 {
     public class CarController : MonoBehaviour
     {
-        private ICarInputs inputs;
+        [SerializeField] private ICarInputs inputs;
 
         public Transform CarMesh;
         public Transform CarNormal;
@@ -54,6 +54,7 @@ namespace RacingGame
 
         private void Update()
         {
+            // Brakes
             if (inputs.BrakeInput)
                 Breaking = true;          
             else
@@ -62,6 +63,7 @@ namespace RacingGame
             // follow collider
             transform.position = Sphere.transform.position - new Vector3(0, 0.4f, 0);
 
+            // Acceleration and Nitro
             if (inputs.MoveInput.y > 0)
             {
                 if (nitroActive)
@@ -70,6 +72,7 @@ namespace RacingGame
                 speed = Acceleration;
             }
 
+            // Steering
             if (Mathf.Abs(inputs.MoveInput.x) > 0.01f)
             {
                 int dir = inputs.MoveInput.x > 0 ? 1 : -1;
@@ -77,6 +80,7 @@ namespace RacingGame
                 Steer(dir, amount);
             }
 
+            // Nitro
             if (inputs.NitroInput)
                 NitroBoost();
 
@@ -99,7 +103,7 @@ namespace RacingGame
             // Anims
 
             //Wheels
-            UpdateWheelVisuals();
+            //UpdateWheelVisuals(); I see this in other scripts so I deactivate them here for now
         }
 
         private void FixedUpdate()
@@ -137,6 +141,7 @@ namespace RacingGame
             // Drifting boost (Like Mario :D)
         }
 
+        // Activates the notro timer
         public void NitroBoost()
         {
             if (nitroActive || nitroOnCooldown)
