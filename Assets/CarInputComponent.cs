@@ -23,7 +23,7 @@ namespace RacingGame
         {
             if (inputs == null)
             {
-                DLogger.LogDevError("CarInputComponent.SetInputs was given null inputs.");
+                DLogger.LogDevError("CarInputComponent.SetInputs was given null inputs.", this);
             }
 
             _carInputs = inputs;
@@ -33,7 +33,7 @@ namespace RacingGame
         {
             if(CarInputs == null)
             {
-                DLogger.LogDevError("CarInputComponent.CarInputs has not been set.");
+                DLogger.LogDevError("CarInputComponent.CarInputs has not been set.", this);
                 return;
             }
 
@@ -47,7 +47,7 @@ namespace RacingGame
 
         private void Start()
         {
-            CarInputs.PostInitialize();
+            CarInputs?.PostInitialize();
             hasStarted = true;
         }
 
