@@ -10,6 +10,7 @@ namespace RacingGame
         public bool NitroInput { get; }
 
         void Initialize(Transform ownerTransform);
-        void Deinitialize();
+        void PostInitialize() { }
+        void Deinitialize() { }
     }
 }
