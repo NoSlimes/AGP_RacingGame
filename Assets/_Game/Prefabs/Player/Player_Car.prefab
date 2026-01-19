@@ -575,7 +575,7 @@ GameObject:
   - component: {fileID: 6556300916948461343}
   - component: {fileID: 8842448982863406061}
   m_Layer: 0
-  m_Name: car
+  m_Name: Player_Car
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
