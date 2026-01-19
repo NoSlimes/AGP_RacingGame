@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace RacingGame
 {
     [Serializable]
-    public class AICarController : ICarInputs
+    public class AICarController : ICarInputs, ITickable
     {
         public Vector2 MoveInput { get; private set; }
         public bool BrakeInput { get; private set; }
@@ -27,21 +27,29 @@ namespace RacingGame
 
         public void Initialize(Transform transform)
         { 
-            if(pCG)
-            {
-                wayPoints = pCG.Centerline;
-            }
+            
             
             //playerCar = FindAnyObjectByType<PlayerCarInputs>();
             thisTransform = transform;
-            transform.position = wayPoints[currentindex];
+
+        }
+
+        public void PostInitialize()
+        {
+            GameManager.Instance.StateMachine.GetState<GameState>().RegisterTickable(this);
+            
+            if (pCG)
+            {
+                wayPoints = pCG.Centerline;
+            }
+            thisTransform.position = wayPoints[currentindex];
             currentindex++;
         }
 
         public void Deinitialize()
         { }
 
-        private void Update()
+        public void Tick()
         {
             //MoveInput = new Vector2(UnityEngine.Random.Range(-1f, 1f), 1f);
             //BrakeInput = UnityEngine.Random.value < 0.1f;
@@ -60,7 +68,7 @@ namespace RacingGame
             //Rotation
             float singleStep = 1.0f * Time.deltaTime;
             Vector3 newDir = Vector3.RotateTowards(thisTransform.forward, dirToMovePosition, singleStep, 0.0f);
-            thisTransform.rotation = Quaternion.LookRotation(newDir);
+            //thisTransform.rotation = Quaternion.LookRotation(newDir);
 
             //Change Waypoint Index
             float dot = Vector3.Dot(thisTransform.forward, dirToMovePosition);
