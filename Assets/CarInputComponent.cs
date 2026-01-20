@@ -27,6 +27,8 @@ namespace RacingGame
             }
 
             _carInputs = inputs;
+            _carInputs.Initialize(transform);
+            _carInputs.PostInitialize();
         }
 
         private void OnEnable()

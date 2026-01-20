@@ -1,6 +1,8 @@
 using NoSlimes.Logging;
 using NoSlimes.UnityUtils.Input;
+using NoSlimes.Util.UniTerminal;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,16 +10,22 @@ using UnityEngine;
 namespace RacingGame
 {
     [DefaultExecutionOrder(-100)]
-    public class GameManager : MonoBehaviour
+    public partial class GameManager : MonoBehaviour
     {
         private static readonly DLogCategory logCategory = new("GameManager", Color.green);
         private static readonly DLogCategory stateMachineLogCategory = new("StateMachine", Color.yellowGreen);
         public static GameManager Instance { get; private set; }
 
+        [SerializeField] private CarControl carPrefab;
+        [SerializeField] private int carCount = 2;
+
         private readonly List<ITickable> tickables = new();
+        private CarSpawner carSpawner;
 
         public StateMachine StateMachine { get; private set; }
         public bool IsPaused => StateMachine?.CurrentState is PauseState;
+
+        public event Action<CarControl> OnPlayerCarAssigned;
 
         public event StateMachine.StateChangedDelegate StateChanged
         {
@@ -42,10 +50,31 @@ namespace RacingGame
                 new PauseState(this, stateMachineLogCategory)
             }, stateMachineLogCategory);
 
-            var initialTickables = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).OfType<ITickable>();
-            foreach (var t in initialTickables) RegisterTickable(t);
+            IEnumerable<ITickable> initialTickables = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).OfType<ITickable>();
+            foreach (ITickable t in initialTickables) RegisterTickable(t);
 
             DLogger.LogDev("GameManager initialized.", category: logCategory);
+        }
+
+        private void Start()
+        {
+            carSpawner = new(PCGManager.Instance, carPrefab, carCount);
+            carSpawner.OnCarsSpawned += () => OnPlayerCarAssigned?.Invoke(GetPlayerCar());
+
+            StartCoroutine(SpawnCoroutine());
+        }
+
+        private IEnumerator SpawnCoroutine()
+        {
+            yield return null; // Yield one frame to ensure everything is initialized
+            carSpawner.SpawnCars();
+        }
+
+        [ConsoleCommand("spawn_cars", "Spawns cars into the scene.")]
+        private void SpawnCars(CommandResponseDelegate response)
+        {
+            CarControl[] spawnedCars = carSpawner.SpawnCars();
+            response($"Spawned {spawnedCars.Length} cars into the scene.");
         }
 
         public void RegisterTickable(ITickable tickable)
@@ -63,6 +92,8 @@ namespace RacingGame
 
             }
         }
+
+        public CarControl GetPlayerCar() => carSpawner?.PlayerCar;
 
         public void UpdateTickables()
         {
@@ -101,59 +132,11 @@ namespace RacingGame
         }
     }
 
-    public abstract class GameManagerState : StateMachine.State
+    public static class CarInputExtensions
     {
-        protected GameManager GameManager { get; private set; }
-        protected DLogCategory LogCategory { get; private set; }
-
-        public GameManagerState(GameManager gameManager, DLogCategory logCategory)
+        public static bool IsPlayerCar(this CarInputComponent comp)
         {
-            GameManager = gameManager;
-            LogCategory = logCategory;
-        }
-    }
-
-    public class GameState : GameManagerState
-    {
-        public GameState(GameManager gameManager, DLogCategory logCategory) : base(gameManager, logCategory) { }
-
-        public override void Enter()
-        {
-            DLogger.LogDev("Entered GameState", category: LogCategory);
-        }
-
-        public override void Update()
-        {
-            GameManager.UpdateTickables();
-        }
-
-        public override void LateUpdate()
-        {
-            GameManager.LateUpdateTickables();
-        }
-
-        public override void FixedUpdate()
-        {
-            GameManager.FixedUpdateTickables();
-        }
-    }
-
-    public class PauseState : GameManagerState
-    {
-        private float prevTimeScale = 1f;
-        public PauseState(GameManager gameManager, DLogCategory logCategory) : base(gameManager, logCategory) { }
-
-        public override void Enter()
-        {
-            prevTimeScale = Time.timeScale;
-            Time.timeScale = 0f;
-            DLogger.LogDev("Game Paused.", category: LogCategory);
-        }
-
-        public override void Exit()
-        {
-            Time.timeScale = prevTimeScale;
-            DLogger.LogDev("Game Resumed.", category: LogCategory);
+            return comp.Inputs is PlayerCarInputs;
         }
     }
 }

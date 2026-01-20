@@ -102,7 +102,7 @@ namespace RacingGame
                     position = CenterLine[i - 1],
                     forward = (CenterLine[i] - CenterLine[i - 1]).normalized,
                     curvature = angle / distance,
-                    trackWidth = Vector3.Distance(pCG.LeftEdge[i - 1], pCG.RightEdge[i - 1])
+                    trackWidth = Vector3.Distance(LeftEdge[i - 1], RightEdge[i - 1])
 
                 });
             }
@@ -163,7 +163,7 @@ namespace RacingGame
 
             float steerinput = Mathf.Clamp(signedAngle / maxSteer, -1f, 1f);
 
-            MoveInput = new Vector2(steerinput, 1f);
+            MoveInput = new Vector2(steerinput, 0.5f);
             //MoveInput = new Vector2(dirToMovePosition.x, dirToMovePosition.z);
             BrakeInput = ShouldBrake();
             NitroInput = ShouldBoost();
