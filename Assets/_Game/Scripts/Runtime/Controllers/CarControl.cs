@@ -1,3 +1,4 @@
+using NUnit.Framework.Interfaces;
 using UnityEngine;
 namespace RacingGame
 {
@@ -13,8 +14,17 @@ namespace RacingGame
         [SerializeField] private float steeringRangeAtMaxSpeed = 10f;
         [SerializeField] private float centreOfGravityOffset = -1f;
 
+        [Header("Nitro Configurations")]
+        public float nitroMultiplier; // How strong the nitro boos is
+        public float nitroDuration; // For how long is the boost going to last
+        public float nitroCooldown; // how long is the cooldown before we can boost again
+        private float nitroTimer;
+
         private WheelControl[] wheels;
         private Rigidbody rigidBody;
+
+        private bool nitroActive;
+        private bool nitroOnCooldown;
 
         private CarInputComponent carInput;
 
@@ -42,20 +52,54 @@ namespace RacingGame
             // Read the Vector2 input from the new Input System
             Vector2 inputVector = carInput.Inputs.MoveInput;
 
+            // Reed nitro and break Input
+            bool nitroInput = carInput.Inputs.NitroInput;
+            bool brakeInput = carInput.Inputs.BrakeInput;
+
             // Get player input for acceleration and steering
             float vInput = inputVector.y; // Forward/backward input
             float hInput = inputVector.x; // Steering input
 
             // Calculate current speed along the car's forward axis
             float forwardSpeed = Vector3.Dot(transform.forward, rigidBody.linearVelocity);
-            float speedFactor = Mathf.InverseLerp(0, maxSpeed, Mathf.Abs(forwardSpeed)); // Normalized speed factor
+            float effectiveMaxSpeed = nitroActive ? maxSpeed * nitroMultiplier : maxSpeed;
+            float speedFactor = Mathf.InverseLerp(0, effectiveMaxSpeed, Mathf.Abs(forwardSpeed)); // Normalized speed factor
 
             // Reduce motor torque and steering at high speeds for better handling
-            float currentMotorTorque = Mathf.Lerp(motorTorque, 0, speedFactor);
+            float torqueFade = nitroActive ? 0f : speedFactor;
+            float baseTorque = Mathf.Lerp(motorTorque, 0f, torqueFade);
+            float currentMotorTorque = nitroActive ? baseTorque * nitroMultiplier : baseTorque;
+            // float currentMotorTorque = Mathf.Lerp(motorTorque, 0f, torqueFade);
             float currentSteerRange = Mathf.Lerp(steeringRange, steeringRangeAtMaxSpeed, speedFactor);
 
             // Determine if the player is accelerating or trying to reverse
-            bool isAccelerating = Mathf.Sign(vInput) == Mathf.Sign(forwardSpeed);
+            bool isAccelerating = !brakeInput && Mathf.Sign(vInput) == Mathf.Sign(forwardSpeed);
+
+            // Decrese the nitro timer if we are curently using nitro boost
+            if (nitroActive)
+            {
+                nitroTimer -= Time.fixedDeltaTime;
+
+                // Start cooldown and deactivate nitro
+                if (nitroTimer <= 0f)
+                {
+                    nitroActive = false;
+                    nitroOnCooldown = true;
+                    Invoke(nameof(ResetNitroCooldown), nitroCooldown);
+                }
+            }
+
+            // Activate nitro
+            if (nitroInput && !nitroActive && !nitroOnCooldown)
+            {
+                nitroActive = true;
+                nitroTimer = nitroDuration;
+
+                rigidBody.AddForce(
+                    transform.forward * motorTorque * nitroMultiplier,
+                    ForceMode.Impulse
+                );
+            }
 
             foreach (var wheel in wheels)
             {
@@ -63,6 +107,13 @@ namespace RacingGame
                 if (wheel.steerable)
                 {
                     wheel.WheelCollider.steerAngle = hInput * currentSteerRange;
+                }
+
+                // Apply breaking
+                if (brakeInput)
+                {
+                    wheel.WheelCollider.brakeTorque = brakeTorque;
+                    continue;
                 }
 
                 if (isAccelerating)
@@ -81,6 +132,16 @@ namespace RacingGame
                     wheel.WheelCollider.motorTorque = 0f;
                     wheel.WheelCollider.brakeTorque = Mathf.Abs(vInput) * brakeTorque;
                 }
+            }
+
+            // Hard speed clamp
+            Vector3 flatVelocity = Vector3.ProjectOnPlane(rigidBody.linearVelocity, transform.up);
+
+            if (!nitroActive && flatVelocity.magnitude > maxSpeed)
+            {
+                rigidBody.linearVelocity =
+                    flatVelocity.normalized * maxSpeed +
+                    Vector3.Project(rigidBody.linearVelocity, transform.up);
             }
         }
 
@@ -110,6 +171,21 @@ namespace RacingGame
                 Vector3 velocityDirection = rigidBody.linearVelocity.normalized;
                 Gizmos.DrawLine(transform.position, transform.position + velocityDirection * 2f);
             }
+        }
+
+        // Activates the notro timer
+        public void NitroBoost()
+        {
+            if (nitroActive || nitroOnCooldown)
+                return;
+
+            nitroActive = true;
+            nitroTimer = nitroDuration;
+        }
+
+        public void ResetNitroCooldown()
+        {
+            nitroOnCooldown = false;
         }
     }
 }

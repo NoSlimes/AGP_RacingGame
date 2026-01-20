@@ -8,7 +8,7 @@ namespace RacingGame
 {
     public class CarController : MonoBehaviour
     {
-        [SerializeField] private ICarInputs inputs;
+        private CarInputComponent CarInput;
 
         public Transform CarMesh;
         public Transform CarNormal;
@@ -49,13 +49,13 @@ namespace RacingGame
 
         private void Awake()
         {
-            inputs = GetComponent<ICarInputs>();
+            CarInput = GetComponent<CarInputComponent>();
         }
 
         private void Update()
         {
             // Brakes
-            if (inputs.BrakeInput)
+            if (CarInput.Inputs.BrakeInput)
                 Breaking = true;          
             else
                 Breaking = false;
@@ -64,7 +64,7 @@ namespace RacingGame
             transform.position = Sphere.transform.position - new Vector3(0, 0.4f, 0);
 
             // Acceleration and Nitro
-            if (inputs.MoveInput.y > 0)
+            if (CarInput.Inputs.MoveInput.y > 0)
             {
                 if (nitroActive)
                     Acceleration *= nitroMultiplier;
@@ -73,15 +73,15 @@ namespace RacingGame
             }
 
             // Steering
-            if (Mathf.Abs(inputs.MoveInput.x) > 0.01f)
+            if (Mathf.Abs(CarInput.Inputs.MoveInput.x) > 0.01f)
             {
-                int dir = inputs.MoveInput.x > 0 ? 1 : -1;
-                float amount = Mathf.Abs((inputs.MoveInput.x));
+                int dir = CarInput.Inputs.MoveInput.x > 0 ? 1 : -1;
+                float amount = Mathf.Abs((CarInput.Inputs.MoveInput.x));
                 Steer(dir, amount);
             }
 
             // Nitro
-            if (inputs.NitroInput)
+            if (CarInput.Inputs.NitroInput)
                 NitroBoost();
 
             CurrentSpeed = Mathf.SmoothStep(CurrentSpeed, speed, Time.deltaTime * 12f); speed = 0;
@@ -103,7 +103,7 @@ namespace RacingGame
             // Anims
 
             //Wheels
-            //UpdateWheelVisuals(); I see this in other scripts so I deactivate them here for now
+            UpdateWheelVisuals(); //I see this in other scripts so I deactivate them here for now
         }
 
         private void FixedUpdate()
@@ -163,7 +163,7 @@ namespace RacingGame
 
         void UpdateWheelVisuals()
         {
-            float SteerAngle = inputs.MoveInput.x * 15f;
+            float SteerAngle = CarInput.Inputs.MoveInput.x * 15f;
             float roll = Sphere.linearVelocity.magnitude * Time.deltaTime * 50f;
 
             ApplyWheel(WheelLF, SteerAngle, roll);
@@ -178,8 +178,8 @@ namespace RacingGame
         {
             Vector3 angles = wheel.localEulerAngles;
 
-            angles.y = steer;      // steering
-            angles.z += roll;      // rolling
+            angles.z = steer;      // steering
+            angles.y += roll;      // rolling
 
             wheel.localEulerAngles = angles;
         }

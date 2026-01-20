@@ -7,37 +7,49 @@ namespace RacingGame
 {
     public class PCGManager : MonoBehaviour
     {
+        public static PCGManager Instance;
+
         // Track
-        public int controlPointCount = 16;
-        public float baseRadius = 60f;
-        public float radiusNoise = 18f;
-        public float smoothing = 0.5f;
+        [Header("Track Settigns")] [SerializeField]
+        private int scatterPointCount = 28;
+
+        [SerializeField] private Vector2 scatterSize = new Vector2(140f, 140f);
+        [SerializeField] private float hullInsertJitter = 18f;
+        [SerializeField] private int hullSubdivisionCount = 2;
+        [SerializeField] private float postHullSmoothing = 0.15f;
+        [SerializeField, Range(0f, 1f)] private float straightChance = 0.45f;
 
         // Sampling
-        public int samplesPerSegment = 16;
-        public float roadWidth = 8f;
+        [Header("Sampling")] [SerializeField] private int samplesPerSegment = 16;
+        [SerializeField] private float roadWidth = 8f;
+        [SerializeField, Range(0, 1f)] private float bezierTension = 0.35f;
+        [SerializeField] private int bezierSamplesPerCorner = 12;
 
         // Road Mesh
-        public Material roadMaterial;
-        public float uvTiling = 4f;
+        [Header("Road mesh")] [SerializeField] private Material roadMaterial;
+        [SerializeField] private float uvTiling = 4f;
 
         // Walls
-        public bool spawnWalls = true;
-        public GameObject wallPrefab;
-        public float wallOffset = 0.5f;
-        public float wallEveryMeters = 3f;
+        [Header("Wall Settings")] [SerializeField]
+        private bool spawnWalls = true;
+
+        [SerializeField] private GameObject wallPrefab;
+        [SerializeField] private float wallOffset = 0.5f;
+        [SerializeField] private float wallEveryMeters = 3f;
 
         // Waypoints
-        public bool generateWaypoints = true;
-        public float waypointEveryMeters = 6f;
+        [Header("Waypoint Settings")] [SerializeField]
+        private bool generateWaypoints = true;
+
+        [SerializeField] private float waypointEveryMeters = 6f;
         public Transform waypointParent;
 
         // Random
-        public int seed = 1337;
-        public bool randomizeSeed = false;
+        [Header("Random")] [SerializeField] private int seed = 1337;
+        [SerializeField] private bool randomizeSeed = false;
 
         // Outputs
-        public List<Vector3> Centerline { get; private set; } = new();
+        [Header("Outputs")] public List<Vector3> Centerline { get; private set; } = new();
         public List<Vector3> RightEdge { get; private set; } = new();
         public List<Vector3> LeftEdge { get; private set; } = new();
 
@@ -47,6 +59,17 @@ namespace RacingGame
         // Finder
         private Transform _generatedWaypointsRoot;
         private Transform _generatedWallsRoot;
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+        }
 
         private void OnEnable()
         {
@@ -88,22 +111,13 @@ namespace RacingGame
             var rng = new System.Random(usedSeed);
 
             // Control points
-            List<Vector3> cps = new();
-            for (int i = 0; i < controlPointCount; i++)
-            {
-                float t = (float)i / controlPointCount;
-                float ang = t * Mathf.PI * 2f;
-
-                float noise = (float)(rng.NextDouble() * 2.0f - 1.0f) * radiusNoise;
-                float r = Mathf.Max(8f, baseRadius + noise);
-
-                Vector3 p = new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * r;
-                cps.Add(transform.TransformPoint(p));
-            }
+            List<Vector3> cps = BuildHullControlPoints(rng);
 
             // Smoothen
-            cps = SmoothRing(cps, smoothing, 3);
-            Centerline = SampleClosedCatmullRom(cps, samplesPerSegment);
+            float autoSmooth = Mathf.Clamp01(postHullSmoothing - (hullInsertJitter / 200f));
+            cps = SmoothRing(cps, autoSmooth, 1);
+            Centerline = SampleClosedBezierChain(cps, bezierTension, bezierSamplesPerCorner);
+            // Centerline = SampleClosedCatmullRom(cps, samplesPerSegment);
 
             // Build Road
             BuildEdges(Centerline, roadWidth * 0.5f, RightEdge, LeftEdge);
@@ -126,6 +140,179 @@ namespace RacingGame
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             return go.transform;
+        }
+
+        private List<Vector3> BuildHullControlPoints(System.Random rng)
+        {
+            // Random points on x,z
+            List<Vector2> pts = new();
+            for (int i = 0; i < scatterPointCount; i++)
+            {
+                float x = (float)(rng.NextDouble() * 2f - 1f) * scatterSize.x * 0.5f;
+                float z = (float)(rng.NextDouble() * 2f - 1f) * scatterSize.y * 0.5f;
+                pts.Add(new Vector2(x, z));
+            }
+
+            // Convex hull
+            List<Vector2> hull = ConvexHull(pts);
+
+            // Convert hull to world cps + subdivide edges
+            List<Vector3> cps = new();
+            for (int i = 0; i < hull.Count; i++)
+            {
+                Vector2 a = hull[i];
+                Vector2 b = hull[(i + 1) % hull.Count];
+
+                bool makeStraight = rng.NextDouble() < straightChance;
+
+                for (int s = 0; s <= hullSubdivisionCount; s++)
+                {
+                    float t = (hullSubdivisionCount == 0) ? 0f : s / (float)hullSubdivisionCount;
+                    Vector2 p = Vector2.Lerp(a, b, t);
+
+                    // Jitter
+                    Vector2 edge = (b - a);
+                    Vector2 n = new Vector2(-edge.y, edge.x);
+                    if (n.sqrMagnitude > 0.0001f) n.Normalize();
+
+                    if (!makeStraight)
+                    {
+                        float w = Mathf.Sin(t * Mathf.PI);
+                        float jitter = (float)(rng.NextDouble() * 2f - 1f) * hullInsertJitter * w;
+                        p += n * jitter;
+                    }
+
+                    // World points
+                    Vector3 wp = transform.TransformPoint(new Vector3(p.x, 0f, p.y));
+                    cps.Add(wp);
+                }
+            }
+
+            // Clear duplicates
+            for (int i = cps.Count - 1; i > 0; i--)
+                if ((cps[i] - cps[i - 1]).sqrMagnitude < 0.25f)
+                    cps.RemoveAt(i);
+            return cps;
+        }
+
+        private List<Vector3> SampleClosedBezierChain(List<Vector3> knots, float tension, int samplesPerCorner)
+        {
+            List<Vector3> result = new();
+            int n = knots.Count;
+            if (n < 3) return result;
+
+            // Handles for each knot
+            Vector3[] inH = new Vector3[n];
+            Vector3[] outH = new Vector3[n];
+
+            Vector3 up = transform.up;
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 pPrev = knots[(i - 1 + n) % n];
+                Vector3 p = knots[i];
+                Vector3 pNext = knots[(i + 1) % n];
+
+                // Prevent vertical rotation
+                Vector3 vPrev = Vector3.ProjectOnPlane(p - pPrev, up);
+                Vector3 vNext = Vector3.ProjectOnPlane(pNext - p, up);
+
+                float lenPrev = vPrev.magnitude;
+                float lenNext = vNext.magnitude;
+
+                if (lenPrev < 0.0001f || lenNext < 0.0001f)
+                {
+                    inH[i] = p;
+                    outH[i] = p;
+                    continue;
+                }
+
+                Vector3 dirPrev = vPrev / lenPrev;
+                Vector3 dirNext = vNext / lenNext;
+
+                // Tangent dir
+                Vector3 tangent = (dirPrev + dirNext);
+                tangent = Vector3.ProjectOnPlane(tangent, up);
+
+                if (tangent.sqrMagnitude < 0.0001f)
+                {
+                    tangent = dirNext;
+                }
+
+                tangent.Normalize();
+
+                // Handle length
+                float handleLenIn = lenPrev * tension;
+                float handleLenOut = lenNext * tension;
+
+                // Incoming handle
+                inH[i] = p - tangent * handleLenIn;
+                outH[i] = p + tangent * handleLenOut;
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                int j = (i + 1) % n;
+
+                Vector3 p0 = knots[i];
+                Vector3 p1 = outH[i];
+                Vector3 p2 = inH[j];
+                Vector3 p3 = knots[j];
+
+                for (int s = 0; s < samplesPerCorner; s++)
+                {
+                    float t = s / (float)samplesPerCorner;
+                    result.Add(CubicBezier(p0, p1, p2, p3, t));
+                }
+            }
+
+            return result;
+        }
+
+        private Vector3 CubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        {
+            float u = 1f - t;
+            float tt = t * t;
+            float uu = u * u;
+            float uuu = uu * u;
+            float ttt = tt * t;
+
+            // Bernstein
+            return (uuu * p0) + (3f * uu * t * p1) + (3 * u * tt * p2) + (ttt * p3);
+        }
+
+
+        private static List<Vector2> ConvexHull(List<Vector2> points)
+        {
+            // Chain hull O(n log n)
+            var pts = new List<Vector2>(points);
+            pts.Sort((a, b) => a.x != b.x ? a.x.CompareTo(b.x) : a.y.CompareTo(b.y));
+
+            float Cross(Vector2 o, Vector2 a, Vector2 b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+
+            List<Vector2> lower = new();
+            foreach (var p in pts)
+            {
+                while (lower.Count >= 2 && Cross(lower[^2], lower[^1], p) <= 0f)
+                    lower.RemoveAt(lower.Count - 1);
+                lower.Add(p);
+            }
+
+            List<Vector2> upper = new();
+            for (int i = pts.Count - 1; i >= 0; i--)
+            {
+                var p = pts[i];
+                while (upper.Count >= 2 && Cross(upper[^2], upper[^1], p) <= 0f)
+                    upper.RemoveAt(upper.Count - 1);
+                upper.Add(p);
+            }
+
+            // Remove
+            lower.RemoveAt(lower.Count - 1);
+            upper.RemoveAt(upper.Count - 1);
+            lower.AddRange(upper);
+
+            return lower;
         }
 
         private List<Vector3> SmoothRing(List<Vector3> points, float amount, int iterations)
@@ -154,6 +341,10 @@ namespace RacingGame
             List<Vector3> result = new();
             int n = cps.Count;
 
+            if (n < 4) return result;
+
+            const float alpha = 0.5f;
+
             for (int i = 0; i < n; i++)
             {
                 Vector3 p0 = cps[(i - 1 + n) % n];
@@ -161,23 +352,51 @@ namespace RacingGame
                 Vector3 p2 = cps[(i + 1) % n];
                 Vector3 p3 = cps[(i + 2) % n];
 
+                // Parameter points (centripetal)
+                float t0 = 0f;
+                float t1 = GetT(t0, p0, p1, alpha);
+                float t2 = GetT(t1, p1, p2, alpha);
+                float t3 = GetT(t2, p2, p3, alpha);
+
                 for (int s = 0; s < samplesPerSeg; s++)
                 {
-                    float t = s / (float)samplesPerSeg;
-                    result.Add(CatmullRom(p0, p1, p2, p3, t));
+                    float t = Mathf.Lerp(t1, t2, s / (float)samplesPerSeg);
+                    result.Add(CentripetalCR(p0, p1, p2, p3, t0, t1, t2, t3, t));
                 }
             }
 
             return result;
         }
 
-        private Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        private float GetT(float t, Vector3 p0, Vector3 p1, float alpha)
         {
-            float t2 = t * t;
-            float t3 = t2 * t;
+            float d = Vector3.Distance(p0, p1);
 
-            return 0.5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 +
-                           (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+            d = Mathf.Max(d, 0.0001f);
+            return t + Mathf.Pow(d, alpha);
+        }
+
+        Vector3 CentripetalCR(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t0, float t1, float t2, float t3,
+            float t)
+        {
+            // Linear blend
+            Vector3 A1 = LerpSafe(p0, p1, t0, t1, t);
+            Vector3 A2 = LerpSafe(p1, p2, t1, t2, t);
+            Vector3 A3 = LerpSafe(p2, p3, t2, t3, t);
+
+            Vector3 B1 = LerpSafe(A1, A2, t0, t2, t);
+            Vector3 B2 = LerpSafe(A2, A3, t1, t3, t);
+
+            Vector3 C = LerpSafe(B1, B2, t1, t2, t);
+            return C;
+        }
+
+        Vector3 LerpSafe(Vector3 a, Vector3 b, float ta, float tb, float t)
+        {
+            float denom = tb - ta;
+            if (Mathf.Abs(denom) < 0.000001f) return a;
+            float u = (t - ta) / denom;
+            return Vector3.LerpUnclamped(a, b, u);
         }
 
         private void BuildEdges(List<Vector3> center, float halfWidth, List<Vector3> right, List<Vector3> left)
@@ -191,8 +410,9 @@ namespace RacingGame
                 Vector3 cur = center[i];
                 Vector3 next = center[(i + 1) % center.Count];
 
-                Vector3 tangent = (next - prev).normalized;
-                Vector3 normal = Vector3.Cross(Vector3.up, tangent).normalized;
+                Vector3 up = transform.up;
+                Vector3 tangent = Vector3.ProjectOnPlane((next - prev), up).normalized;
+                Vector3 normal = Vector3.Cross(up, tangent).normalized;
 
                 right.Add(cur + normal * halfWidth);
                 left.Add(cur - normal * halfWidth);
@@ -292,10 +512,12 @@ namespace RacingGame
             Vector3 dir = (next - prev).normalized;
 
             // Offset from the road
-            Vector3 outward = Vector3.Cross(dir, Vector3.up).normalized * sideSign;
+            Vector3 up = transform.up;
+            dir = Vector3.ProjectOnPlane(dir, up).normalized;
+            Vector3 outward = Vector3.Cross(dir, up).normalized * sideSign;
             Vector3 p = pos + outward * wallOffset;
 
-            var go = Instantiate(wallPrefab, p, Quaternion.LookRotation(dir, Vector3.up), _generatedWallsRoot);
+            var go = Instantiate(wallPrefab, p, Quaternion.LookRotation(dir, up), _generatedWallsRoot);
             go.name = $"Wall_{sideSign}_{i}";
         }
 
@@ -317,9 +539,8 @@ namespace RacingGame
                 {
                     acc = 0f;
                     Vector3 pos = center[i];
-                    Vector3 forward = (center[(i + 1) % center.Count] - center[(i - 1 + center.Count) % center.Count])
-                        .normalized;
-                    forward = Vector3.ProjectOnPlane(transform.forward, up);
+                    Vector3 forward = (center[(i + 1) % center.Count] - center[(i - 1 + center.Count) % center.Count]);
+                    forward = Vector3.ProjectOnPlane(forward, up);
 
                     if (forward.sqrMagnitude < 0.0001f)
                     {
