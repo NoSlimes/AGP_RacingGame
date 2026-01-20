@@ -21,6 +21,9 @@ public class WheelControl : TickableBehaviour, ICarComponent
 
     public override void Tick()
     {
+        if(WheelCollider == null || wheelModel == null)
+            return;
+
         WheelCollider.GetWorldPose(out position, out rotation);
         wheelModel.transform.SetPositionAndRotation(position, rotation);
     }
