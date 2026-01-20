@@ -20,10 +20,6 @@ namespace RacingGame
         [SerializeField] private float nitroCooldown; // how long is the cooldown before we can boost again
         private float nitroTimer;
 
-        [Header("Effects")]
-        public TrailRenderer[] TireMarks;
-        private bool tireMarkFlag;
-
         private WheelControl[] wheels;
         private Rigidbody rigidBody;
 
@@ -142,10 +138,7 @@ namespace RacingGame
                 if (brakeInput)
                 {
                     wheel.WheelCollider.brakeTorque = brakeTorque;
-                    StartEmmiter();
-                    continue;
                 }
-                else StopEmmiter();
             }
 
             // Hard speed clamp
@@ -209,28 +202,6 @@ namespace RacingGame
         public void ResetNitroCooldown()
         {
             nitroOnCooldown = false;
-        }
-
-        private void StartEmmiter()
-        {
-            if (tireMarkFlag) return;
-            foreach(TrailRenderer T in TireMarks)
-            {
-                T.emitting = true;
-            }
-
-            tireMarkFlag = true;
-        }
-
-        private void StopEmmiter()
-        {
-            if (!tireMarkFlag) return;
-            foreach (TrailRenderer T in TireMarks)
-            {
-                T.emitting = false;
-            }
-
-            tireMarkFlag = false;
         }
     }
 }

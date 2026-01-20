@@ -18,6 +18,7 @@ namespace RacingGame
 
         [SerializeField] private Car carPrefab;
         [SerializeField] private int carCount = 2;
+        [SerializeField] private bool autoSpawn = true;
 
         private readonly List<ITickable> tickables = new();
         private CarSpawner carSpawner;
@@ -61,7 +62,8 @@ namespace RacingGame
             carSpawner = new(PCGManager.Instance, carPrefab, carCount);
             carSpawner.OnCarsSpawned += () => OnPlayerCarAssigned?.Invoke(GetPlayerCar());
 
-            StartCoroutine(SpawnCoroutine());
+            if (autoSpawn)
+                StartCoroutine(SpawnCoroutine());
         }
 
         private IEnumerator SpawnCoroutine()
