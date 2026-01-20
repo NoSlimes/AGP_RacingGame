@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 
 namespace RacingGame
 {
@@ -7,19 +8,26 @@ namespace RacingGame
      
     Implementation Steps
 
-    1. Attach a Rigidbody: Ensure the object you want to track (like a car or a ball) has a Rigidbody component attached.
+    1. Lägg till this script as SpeedManager or speedometer or some shit.
 
-    2. Add this script as component to the object.
+    2. Attach ett objekt to track in targetObject: Ensure the object you want to track (like a car or a ball) has a Rigidbody component attached.
 
     3. Check the console / Dlog console: You can watch the metersPerSecond and other variables update in real-time in the Inspector window while the game is running.
 
+    4. (Optional) Link UI Text Elements from Assets/_Game/Prefabs/UI/Speedometer in a canvas with the SpeedManager: If you want to display the speed on the screen, 
+        link the TextMeshProUGUI fields (kmh_UI, mph_UI, ms_UI)
+
     */
 
-
-    [RequireComponent(typeof(Rigidbody))]
     public class Speedometer : MonoBehaviour
     {
-        private Rigidbody rb;
+
+        [SerializeField] public Transform targetObject;
+        [SerializeField] public TextMeshProUGUI kmh_UI;
+        [SerializeField] public TextMeshProUGUI mph_UI;
+        [SerializeField] public TextMeshProUGUI ms_UI;
+
+        private Rigidbody targetRb;
 
         [Header("Settings")]
         public bool showDebugLogs = true;
@@ -28,18 +36,43 @@ namespace RacingGame
         private float kilometersPerHour;
         private float milesPerHour;
 
-        private void Awake()
-        {
-            rb = GetComponent<Rigidbody>();
-        }
         void FixedUpdate()
         {
+            if (targetObject == null) return;
+
+            if (targetRb == null)
+            {
+                targetRb = targetObject.GetComponent<Rigidbody>();
+
+                if (targetRb == null)
+                {
+                    Debug.LogError("Target object does not have a Rigidbody component.");
+                    return;
+                }
+            }
+
             // get magnitude of velocity vector
-            metersPerSecond = rb.linearVelocity.magnitude;
+            metersPerSecond = targetRb.linearVelocity.magnitude;
 
             // convert units
             kilometersPerHour = metersPerSecond * 3.6f;
             milesPerHour = metersPerSecond * 2.23694f;
+
+            // update UI text if assigned
+            if (kmh_UI != null)
+            {                
+                kmh_UI.text = $"{kilometersPerHour:F1} km/h";  
+            }
+
+            if (mph_UI != null)
+            {
+                mph_UI.text = $"{milesPerHour:F2} mph";
+            }
+
+            if (ms_UI != null)
+            {
+                ms_UI.text = $"{metersPerSecond:F2} m/s";
+            }
 
             // debug to console
             if (showDebugLogs)
