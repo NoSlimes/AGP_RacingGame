@@ -28,6 +28,14 @@ namespace RacingGame
 
         private CarInputComponent carInput;
 
+        public float MaxSpeed => maxSpeed;
+        public float SteeringRange => steeringRange;
+        public float SteeringRangeAtMaxSpeed => steeringRangeAtMaxSpeed;
+
+        public float NitroMultiplier => nitroMultiplier;
+        public float NitroDuration => nitroDuration;
+        public float NitroCooldown => nitroCooldown;
+
         void Awake()
         {
             carInput = GetComponent<CarInputComponent>();
