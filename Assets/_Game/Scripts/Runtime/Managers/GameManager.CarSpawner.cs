@@ -21,19 +21,19 @@ namespace RacingGame
         private class CarSpawner
         {
             private readonly PCGManager pCGManager;
-            private readonly CarControl carPrefab;
+            private readonly Car carPrefab;
             private readonly int carCount;
 
-            private readonly List<CarControl> spawnedCars = new();
+            private readonly List<Car> spawnedCars = new();
             private readonly (Vector3 spawnPoint, Vector3 trackForward)[] spawnPositions;
 
-            public CarControl PlayerCar { get; private set; }
-            public IReadOnlyList<CarControl> SpawnedCars => spawnedCars;
+            public Car PlayerCar { get; private set; }
+            public IReadOnlyList<Car> SpawnedCars => spawnedCars;
             public IReadOnlyList<(Vector3 spawnPoint, Vector3 trackForward)> SpawnPositions => spawnPositions;
 
             public event Action OnCarsSpawned;
 
-            public CarSpawner(PCGManager pCGManager, CarControl carPrefab, int carCount)
+            public CarSpawner(PCGManager pCGManager, Car carPrefab, int carCount)
             {
                 this.pCGManager = pCGManager;
                 this.carPrefab = carPrefab;
@@ -43,20 +43,20 @@ namespace RacingGame
                 PrepareSpawnPositions();
             }
 
-            public CarControl[] SpawnCars()
+            public Car[] SpawnCars()
             {
                 foreach (var (spawnPoint, trackForward) in spawnPositions)
                 {
                     var forwardRotation = Quaternion.LookRotation(trackForward, Vector3.up);
 
-                    CarControl newCar = Instantiate(carPrefab, spawnPoint, forwardRotation);
+                    Car newCar = Instantiate(carPrefab, spawnPoint, forwardRotation);
                     spawnedCars.Add(newCar);
                 }
 
                 var playerCarIndex = UnityEngine.Random.Range(0, spawnedCars.Count);
                 for (int i = 0; i < spawnedCars.Count; i++)
                 {
-                    CarControl car = spawnedCars[i];
+                    Car car = spawnedCars[i];
                     if (car.TryGetComponent(out CarInputComponent inputComp))
                     {
                         if (i == playerCarIndex)
@@ -138,7 +138,7 @@ namespace RacingGame
             {
                 for (int i = 0; i < spawnedCars.Count; i++)
                 {
-                    CarControl car = spawnedCars[i];
+                    Car car = spawnedCars[i];
                     var (spawnPoint, trackForward) = spawnPositions[i];
 
                     if (car.TryGetComponent(out Rigidbody rb))

@@ -4,7 +4,7 @@ namespace RacingGame
 {
 
     [RequireComponent(typeof(Rigidbody), typeof(CarInputComponent))]
-    public class CarControl : TickableBehaviour
+    public class CarControl : MonoBehaviour, ICarComponent
     {
         [Header("Car Properties")]
         [SerializeField] private float motorTorque = 2000f;
@@ -19,6 +19,10 @@ namespace RacingGame
         [SerializeField] private float nitroDuration; // For how long is the boost going to last
         [SerializeField] private float nitroCooldown; // how long is the cooldown before we can boost again
         private float nitroTimer;
+
+        [Header("Effects")]
+        public TrailRenderer[] TireMarks;
+        private bool tireMarkFlag;
 
         private WheelControl[] wheels;
         private Rigidbody rigidBody;
@@ -36,26 +40,19 @@ namespace RacingGame
         public float NitroDuration => nitroDuration;
         public float NitroCooldown => nitroCooldown;
 
-        void Awake()
+        public void Initialize(Car ownerCar) 
         {
-            carInput = GetComponent<CarInputComponent>();
-            rigidBody = GetComponent<Rigidbody>();
-            wheels = GetComponentsInChildren<WheelControl>();
-        }
+            carInput = ownerCar.GetCarComponent<CarInputComponent>();
+            rigidBody = ownerCar.Rigidbody;
+            wheels = ownerCar.GetCarComponents<WheelControl>();
 
-        // Start is called before the first frame update
-        void Start()
-        {
-            // Adjust center of mass to improve stability and prevent rolling
             Vector3 centerOfMass = rigidBody.centerOfMass;
             centerOfMass.y += centreOfGravityOffset;
             rigidBody.centerOfMass = centerOfMass;
-
-            // Get all wheel components attached to the car
         }
 
         // FixedUpdate is called at a fixed time interval
-        public override void FixedTick()
+        public void FixedTickComponent()
         {
             // Read the Vector2 input from the new Input System
             Vector2 inputVector = carInput.Inputs.MoveInput;
@@ -110,24 +107,24 @@ namespace RacingGame
             }
 
             foreach (var wheel in wheels)
-            {
-                // Apply steering to wheels that support steering
-                if (wheel.steerable)
-                {
-                    wheel.WheelCollider.steerAngle = hInput * currentSteerRange;
-                }
+            {             
+                // Apply Speed based traction
+                WheelFrictionCurve sideways = wheel.WheelCollider.sidewaysFriction;
+                sideways.stiffness = Mathf.Lerp(2.0f, 0.9f, speedFactor);
+                wheel.WheelCollider.sidewaysFriction = sideways;
 
-                // Apply breaking
-                if (brakeInput)
+                // Apply steering to wheels that support steering
+                if (wheel.Steerable)
                 {
-                    wheel.WheelCollider.brakeTorque = brakeTorque;
-                    continue;
+                    //wheel.WheelCollider.steerAngle = hInput * currentSteerRange; // without steering damping
+                    // Added damping to steeriing
+                    wheel.WheelCollider.steerAngle = Mathf.Lerp(wheel.WheelCollider.steerAngle, hInput * currentSteerRange, Time.fixedDeltaTime * 6f);
                 }
 
                 if (isAccelerating)
                 {
                     // Apply torque to motorized wheels
-                    if (wheel.motorized)
+                    if (wheel.Motorized)
                     {
                         wheel.WheelCollider.motorTorque = vInput * currentMotorTorque;
                     }
@@ -140,6 +137,15 @@ namespace RacingGame
                     wheel.WheelCollider.motorTorque = 0f;
                     wheel.WheelCollider.brakeTorque = Mathf.Abs(vInput) * brakeTorque;
                 }
+
+                // Apply breaking
+                if (brakeInput)
+                {
+                    wheel.WheelCollider.brakeTorque = brakeTorque;
+                    StartEmmiter();
+                    continue;
+                }
+                else StopEmmiter();
             }
 
             // Hard speed clamp
@@ -150,6 +156,15 @@ namespace RacingGame
                 rigidBody.linearVelocity =
                     flatVelocity.normalized * maxSpeed +
                     Vector3.Project(rigidBody.linearVelocity, transform.up);
+            }
+
+            // Engine Drag
+            if (Mathf.Abs(vInput) < 0.1f && !brakeInput)
+            {
+                rigidBody.AddForce(
+                    -transform.forward * forwardSpeed * 0.5f,
+                    ForceMode.Acceleration
+                );
             }
         }
 
@@ -194,6 +209,28 @@ namespace RacingGame
         public void ResetNitroCooldown()
         {
             nitroOnCooldown = false;
+        }
+
+        private void StartEmmiter()
+        {
+            if (tireMarkFlag) return;
+            foreach(TrailRenderer T in TireMarks)
+            {
+                T.emitting = true;
+            }
+
+            tireMarkFlag = true;
+        }
+
+        private void StopEmmiter()
+        {
+            if (!tireMarkFlag) return;
+            foreach (TrailRenderer T in TireMarks)
+            {
+                T.emitting = false;
+            }
+
+            tireMarkFlag = false;
         }
     }
 }

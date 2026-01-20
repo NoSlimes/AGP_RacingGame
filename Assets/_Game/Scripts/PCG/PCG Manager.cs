@@ -7,6 +7,10 @@ namespace RacingGame
 {
     public class PCGManager : MonoBehaviour
     {
+#if UNITY_EDITOR
+        private bool _queuedRegen;
+#endif
+
         public static PCGManager Instance;
 
         // Track
@@ -19,9 +23,17 @@ namespace RacingGame
         [SerializeField] private float postHullSmoothing = 0.15f;
         [SerializeField, Range(0f, 1f)] private float straightChance = 0.45f;
 
+        [Header("Elevation (3D Hills)")] [SerializeField]
+        private bool enableElevation = true;
+
+        [SerializeField] private float elevationAmplitude = 6f;
+        [SerializeField] private float elevationNoiseScale = 0.015f;
+        [SerializeField] private float maxSlopeDeg = 15f;
+        [SerializeField] private float elevationTurnLimitDeg = 20f;
+        [SerializeField] private int elevationSmoothIterations = 2;
+
         // Sampling
-        [Header("Sampling")] [SerializeField] private int samplesPerSegment = 16;
-        [SerializeField] private float roadWidth = 8f;
+        [Header("Sampling")] [SerializeField] private float roadWidth = 8f;
         [SerializeField, Range(0, 1f)] private float bezierTension = 0.35f;
         [SerializeField] private int bezierSamplesPerCorner = 12;
 
@@ -53,6 +65,8 @@ namespace RacingGame
         public List<Vector3> RightEdge { get; private set; } = new();
         public List<Vector3> LeftEdge { get; private set; } = new();
 
+        // Components
+        private MeshCollider _meshCollider;
         private MeshFilter _meshFilter;
         private MeshRenderer _meshRenderer;
 
@@ -82,13 +96,25 @@ namespace RacingGame
         {
             EnsureComponents();
 #if UNITY_EDITOR
-            if (!Application.isPlaying)
+            if (Application.isPlaying) return;
+            if (_queuedRegen) return;
+
+            _queuedRegen = true;
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                _queuedRegen = false;
+                if (this == null) return;
+
                 Generate();
+            };
 #endif
         }
 
         private void EnsureComponents()
         {
+            if (!_meshCollider) _meshCollider = GetComponent<MeshCollider>();
+            if (!_meshCollider) _meshCollider = gameObject.AddComponent<MeshCollider>();
+
             if (!_meshFilter) _meshFilter = GetComponent<MeshFilter>();
             if (!_meshFilter) _meshFilter = gameObject.AddComponent<MeshFilter>();
 
@@ -103,9 +129,7 @@ namespace RacingGame
             ClearPCG();
 
             _generatedWallsRoot = GetOrCreateChild(transform, "_Generated_Walls");
-
-            Transform wpRootParent = waypointParent ? waypointParent : transform;
-            _generatedWaypointsRoot = GetOrCreateChild(wpRootParent, "_Generated_Waypoints");
+            _generatedWaypointsRoot = GetOrCreateChild(transform, "_Generated_Waypoints");
 
             int usedSeed = randomizeSeed ? Random.Range(int.MinValue / 2, int.MaxValue / 2) : seed;
             var rng = new System.Random(usedSeed);
@@ -117,7 +141,8 @@ namespace RacingGame
             float autoSmooth = Mathf.Clamp01(postHullSmoothing - (hullInsertJitter / 200f));
             cps = SmoothRing(cps, autoSmooth, 1);
             Centerline = SampleClosedBezierChain(cps, bezierTension, bezierSamplesPerCorner);
-            // Centerline = SampleClosedCatmullRom(cps, samplesPerSegment);
+            if (enableElevation)
+                ApplyElevation(Centerline, rng);
 
             // Build Road
             BuildEdges(Centerline, roadWidth * 0.5f, RightEdge, LeftEdge);
@@ -336,68 +361,95 @@ namespace RacingGame
             return pts;
         }
 
-        private List<Vector3> SampleClosedCatmullRom(List<Vector3> cps, int samplesPerSeg)
+
+        private void ApplyElevation(List<Vector3> center, System.Random rng)
         {
-            List<Vector3> result = new();
-            int n = cps.Count;
+            if (center == null || center.Count < 4) return;
 
-            if (n < 4) return result;
+            Vector3 up = transform.up;
 
-            const float alpha = 0.5f;
+            // Build a distance parameter along the loop for stable noise sampling
+            int n = center.Count;
+            float[] dist = new float[n];
+            dist[0] = 0f;
+
+            for (int i = 1; i < n; i++)
+                dist[i] = dist[i - 1] + Vector3.Distance(center[i - 1], center[i]);
+
+            float loopLen = dist[n - 1] + Vector3.Distance(center[n - 1], center[0]);
+            float noiseOffset = (float)rng.NextDouble() * 1000f;
+
+            // 1) Target heights from noise (but reduce height in hard turns)
+            float[] h = new float[n];
 
             for (int i = 0; i < n; i++)
             {
-                Vector3 p0 = cps[(i - 1 + n) % n];
-                Vector3 p1 = cps[i];
-                Vector3 p2 = cps[(i + 1) % n];
-                Vector3 p3 = cps[(i + 2) % n];
+                int prev = (i - 1 + n) % n;
+                int next = (i + 1) % n;
 
-                // Parameter points (centripetal)
-                float t0 = 0f;
-                float t1 = GetT(t0, p0, p1, alpha);
-                float t2 = GetT(t1, p1, p2, alpha);
-                float t3 = GetT(t2, p2, p3, alpha);
+                Vector3 a = Vector3.ProjectOnPlane(center[i] - center[prev], up);
+                Vector3 b = Vector3.ProjectOnPlane(center[next] - center[i], up);
 
-                for (int s = 0; s < samplesPerSeg; s++)
-                {
-                    float t = Mathf.Lerp(t1, t2, s / (float)samplesPerSeg);
-                    result.Add(CentripetalCR(p0, p1, p2, p3, t0, t1, t2, t3, t));
-                }
+                float angle = 0f;
+                if (a.sqrMagnitude > 0.0001f && b.sqrMagnitude > 0.0001f)
+                    angle = Vector3.Angle(a, b);
+
+                // 0..1 where 1 = gentle, 0 = sharp
+                float gentle = Mathf.InverseLerp(elevationTurnLimitDeg, 0f, angle);
+                gentle = Mathf.Clamp01(gentle);
+
+                float t = (dist[i] / Mathf.Max(loopLen, 0.001f)); // 0..1 around loop
+                float noise = Mathf.PerlinNoise(noiseOffset + t * (1f / Mathf.Max(elevationNoiseScale, 0.0001f)),
+                    noiseOffset);
+
+                // Center noise around 0
+                float centered = (noise * 2f - 1f);
+
+                // Apply reduced elevation on sharp corners
+                h[i] = centered * elevationAmplitude * gentle;
             }
 
-            return result;
+            // 2) Smooth heights (makes hills feel Mario-Kart-ish)
+            for (int it = 0; it < elevationSmoothIterations; it++)
+            {
+                float[] tmp = new float[n];
+                for (int i = 0; i < n; i++)
+                {
+                    int prev = (i - 1 + n) % n;
+                    int next = (i + 1) % n;
+                    tmp[i] = (h[prev] + h[i] + h[next]) / 3f;
+                }
+
+                h = tmp;
+            }
+
+            // 3) Clamp slope (prevents undrivable spikes)
+            float maxSlope = Mathf.Tan(maxSlopeDeg * Mathf.Deg2Rad);
+
+            // Forward pass
+            for (int i = 1; i < n; i++)
+            {
+                float seg = Vector3.Distance(center[i - 1], center[i]);
+                float maxDy = maxSlope * seg;
+                h[i] = Mathf.Clamp(h[i], h[i - 1] - maxDy, h[i - 1] + maxDy);
+            }
+
+            // Wrap clamp (last -> first)
+            {
+                float seg = Vector3.Distance(center[n - 1], center[0]);
+                float maxDy = maxSlope * seg;
+                h[0] = Mathf.Clamp(h[0], h[n - 1] - maxDy, h[n - 1] + maxDy);
+            }
+
+            // Apply heights to centerline
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 p = center[i];
+                // height along the generator's up axis
+                center[i] = p + up * h[i];
+            }
         }
 
-        private float GetT(float t, Vector3 p0, Vector3 p1, float alpha)
-        {
-            float d = Vector3.Distance(p0, p1);
-
-            d = Mathf.Max(d, 0.0001f);
-            return t + Mathf.Pow(d, alpha);
-        }
-
-        Vector3 CentripetalCR(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t0, float t1, float t2, float t3,
-            float t)
-        {
-            // Linear blend
-            Vector3 A1 = LerpSafe(p0, p1, t0, t1, t);
-            Vector3 A2 = LerpSafe(p1, p2, t1, t2, t);
-            Vector3 A3 = LerpSafe(p2, p3, t2, t3, t);
-
-            Vector3 B1 = LerpSafe(A1, A2, t0, t2, t);
-            Vector3 B2 = LerpSafe(A2, A3, t1, t3, t);
-
-            Vector3 C = LerpSafe(B1, B2, t1, t2, t);
-            return C;
-        }
-
-        Vector3 LerpSafe(Vector3 a, Vector3 b, float ta, float tb, float t)
-        {
-            float denom = tb - ta;
-            if (Mathf.Abs(denom) < 0.000001f) return a;
-            float u = (t - ta) / denom;
-            return Vector3.LerpUnclamped(a, b, u);
-        }
 
         private void BuildEdges(List<Vector3> center, float halfWidth, List<Vector3> right, List<Vector3> left)
         {
@@ -411,11 +463,12 @@ namespace RacingGame
                 Vector3 next = center[(i + 1) % center.Count];
 
                 Vector3 up = transform.up;
-                Vector3 tangent = Vector3.ProjectOnPlane((next - prev), up).normalized;
-                Vector3 normal = Vector3.Cross(up, tangent).normalized;
+                Vector3 forward = (next - prev).normalized;
+                Vector3 rightDir = Vector3.Cross(up, forward).normalized;
+                Vector3 sideways = rightDir;
 
-                right.Add(cur + normal * halfWidth);
-                left.Add(cur - normal * halfWidth);
+                right.Add(cur + sideways * halfWidth);
+                left.Add(cur - sideways * halfWidth);
             }
         }
 
@@ -476,16 +529,24 @@ namespace RacingGame
             mesh.RecalculateBounds();
 
             _meshFilter.sharedMesh = mesh;
+            _meshCollider.sharedMesh = null;
+            _meshCollider.sharedMesh = mesh;
         }
 
         private void SpawnWalls(List<Vector3> right, List<Vector3> left)
         {
+            if (right == null || left == null) return;
+            if (right.Count < 2 || left.Count < 2) return;
+            if (right.Count != left.Count) return;
+
             float accR = 0f;
             float accL = 0f;
 
-            for (int i = 1; i < right.Count; i++)
+            for (int i = 0; i < right.Count; i++)
             {
-                float dR = Vector3.Distance(right[i - 1], right[i]);
+                int prev = (i - 1 + right.Count) % right.Count;
+
+                float dR = Vector3.Distance(right[prev], right[i]);
                 accR += dR;
 
                 if (accR >= wallEveryMeters)
@@ -494,7 +555,7 @@ namespace RacingGame
                     SpawnWallAt(right[i], right, i, +1);
                 }
 
-                float dL = Vector3.Distance(left[i - 1], left[i]);
+                float dL = Vector3.Distance(left[prev], left[i]);
                 accL += dL;
 
                 if (accL >= wallEveryMeters)
@@ -514,17 +575,25 @@ namespace RacingGame
             // Offset from the road
             Vector3 up = transform.up;
             dir = Vector3.ProjectOnPlane(dir, up).normalized;
-            Vector3 outward = Vector3.Cross(dir, up).normalized * sideSign;
+            Vector3 outward = Vector3.Cross(up, dir).normalized * sideSign;
             Vector3 p = pos + outward * wallOffset;
+
+            // Push outwards
+            float halfWidth = roadWidth * 0.5f;
+            Vector3 center = Centerline[i];
+            float distToCenter = Vector3.Distance(p, center);
+
+            if (distToCenter < halfWidth + 0.1f)
+            {
+                p = pos - outward * wallOffset;
+            }
 
             var go = Instantiate(wallPrefab, p, Quaternion.LookRotation(dir, up), _generatedWallsRoot);
             go.name = $"Wall_{sideSign}_{i}";
         }
 
-
         private void GenerateWaypointsObjects(List<Vector3> center)
         {
-            Transform parent = waypointParent ? waypointParent : transform;
             Vector3 up = transform.up;
 
             float acc = 0f;
@@ -558,8 +627,7 @@ namespace RacingGame
         private void ClearPCG()
         {
             // Clear waypoints
-            Transform wpRootParent = waypointParent ? waypointParent : transform;
-            var wpRoot = wpRootParent.Find("_Generated_Waypoints");
+            var wpRoot = transform.Find("_Generated_Waypoints");
             if (wpRoot != null) DestroyChildren(wpRoot);
 
             // Clear walls

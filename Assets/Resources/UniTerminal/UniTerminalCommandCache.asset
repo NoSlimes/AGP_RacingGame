@@ -13,49 +13,6 @@ MonoBehaviour:
   m_Name: UniTerminalCommandCache
   m_EditorClassIdentifier: NoSlimes.UniTerminal.Runtime::NoSlimes.Util.UniTerminal.ConsoleCommandCache
   Commands:
-  - CommandName: test_bool
-    Description: 
-    Flags: 0
-    DeclaringTypeName: RacingGame.ConsoleCommandExamples, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-    MethodName: TestBool
-    ParameterTypes:
-    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    - System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
-  - CommandName: test_enum
-    Description: 
-    Flags: 0
-    DeclaringTypeName: RacingGame.ConsoleCommandExamples, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-    MethodName: TestEnumCommand
-    ParameterTypes:
-    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    - RacingGame.ConsoleCommandExamples+TestEnum, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-  - CommandName: test_both
-    Description: 
-    Flags: 0
-    DeclaringTypeName: RacingGame.ConsoleCommandExamples, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-    MethodName: TestBoth
-    ParameterTypes:
-    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    - System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
-    - RacingGame.ConsoleCommandExamples+TestEnum, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-  - CommandName: log_example
-    Description: 
-    Flags: 0
-    DeclaringTypeName: RacingGame.DLoggerExamples, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-    MethodName: LogExample
-    ParameterTypes:
-    - NoSlimes.Util.UniTerminal.CommandResponseDelegate, NoSlimes.UniTerminal.Runtime,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    - System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
   - CommandName: spawn_cars
     Description: Spawns cars into the scene.
     Flags: 0

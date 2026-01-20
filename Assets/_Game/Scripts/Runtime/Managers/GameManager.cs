@@ -16,7 +16,7 @@ namespace RacingGame
         private static readonly DLogCategory stateMachineLogCategory = new("StateMachine", Color.yellowGreen);
         public static GameManager Instance { get; private set; }
 
-        [SerializeField] private CarControl carPrefab;
+        [SerializeField] private Car carPrefab;
         [SerializeField] private int carCount = 2;
 
         private readonly List<ITickable> tickables = new();
@@ -25,7 +25,7 @@ namespace RacingGame
         public StateMachine StateMachine { get; private set; }
         public bool IsPaused => StateMachine?.CurrentState is PauseState;
 
-        public event Action<CarControl> OnPlayerCarAssigned;
+        public event Action<Car> OnPlayerCarAssigned;
 
         public event StateMachine.StateChangedDelegate StateChanged
         {
@@ -73,7 +73,7 @@ namespace RacingGame
         [ConsoleCommand("spawn_cars", "Spawns cars into the scene.")]
         private void SpawnCars(CommandResponseDelegate response)
         {
-            CarControl[] spawnedCars = carSpawner.SpawnCars();
+            Car[] spawnedCars = carSpawner.SpawnCars();
             response($"Spawned {spawnedCars.Length} cars into the scene.");
         }
 
@@ -93,7 +93,7 @@ namespace RacingGame
             }
         }
 
-        public CarControl GetPlayerCar() => carSpawner?.PlayerCar;
+        public Car GetPlayerCar() => carSpawner?.PlayerCar;
 
         public void UpdateTickables()
         {
