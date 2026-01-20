@@ -1,0 +1,428 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Splines;
+
+namespace RacingGame._Game.Scripts.PCG
+{
+    [ExecuteAlways]
+    public class TrackWaypointBuilder : MonoBehaviour
+    {
+        [Header("Input")] public SplineContainer splineContainer;
+
+        [Header("Waypoint Output")] public Transform waypointRoot;
+        public string waypointNamePrefix = "WP_";
+        public bool spawnGameObjects = true;
+        public bool clearOldOnBuild = true;
+
+        [Header("Sampling")] [Min(0.25f)] public float spacingMeters = 6f;
+        public float heightOffset = 0.5f;
+        public bool alignRotationToTangent = true;
+
+        [Header("Speed Hints (from curvature)")]
+        [Tooltip("If true, we compute curvature/radius and a recommended speed for each waypoint.")]
+        public bool computeSpeedHints = true;
+
+        [Tooltip("Treat turns using planar (flattened) direction to avoid hills affecting turn sharpness.")]
+        public bool usePlanarTurn = true;
+
+        [Tooltip("Friction coefficient used for corner speed approximation. Arcade: 1.2-2.0, Sim: 0.8-1.2")]
+        [Range(0.2f, 3.0f)]
+        public float frictionMu = 1.4f;
+
+        [Tooltip("Multiplier on computed corner speed. Lower = more cautious AI.")] [Range(0.3f, 2.0f)]
+        public float speedMultiplier = 1.0f;
+
+        [Tooltip("Minimum recommended speed (m/s).")] [Min(0f)]
+        public float minRecommendedSpeed = 4f;
+
+        [Tooltip("Maximum recommended speed (m/s).")] [Min(0f)]
+        public float maxRecommendedSpeed = 60f;
+
+        [Tooltip("Anything with turn angle below this is treated as straight-ish.")] [Range(0f, 30f)]
+        public float straightAngleThresholdDeg = 3f;
+
+        [Header("Brake/Accel Zones")]
+        [Tooltip("How many waypoints ahead to consider when deciding if we need to brake now.")]
+        [Min(1)]
+        public int lookAheadWaypoints = 8;
+
+        [Tooltip("If upcoming recommended speed is lower than current by this amount (m/s), mark a brake zone.")]
+        [Min(0f)]
+        public float brakeDeltaThreshold = 6f;
+
+        [Tooltip("How many waypoints BEFORE a slow corner to mark as Brake zone.")] [Min(0)]
+        public int brakeLeadWaypoints = 4;
+
+        [Tooltip("How many waypoints AFTER a slow corner to mark as Accelerate zone.")] [Min(0)]
+        public int accelTailWaypoints = 4;
+
+        [Header("Debug")] public bool drawGizmos = true;
+        public float gizmoRadius = 0.35f;
+
+        [Header("Build")] public bool rebuild;
+
+        public List<Transform> Waypoints { get; private set; } = new List<Transform>();
+        public List<Vector3> WaypointPositions { get; private set; } = new List<Vector3>();
+
+        // Optional computed hints (parallel to WaypointPositions)
+        public List<float> RecommendedSpeeds { get; private set; } = new List<float>();
+        public List<float> Radii { get; private set; } = new List<float>();
+        public List<float> Curvatures { get; private set; } = new List<float>();
+        public List<float> TurnAnglesDeg { get; private set; } = new List<float>();
+        public List<WaypointZoneType> Zones { get; private set; } = new List<WaypointZoneType>();
+
+        void Reset()
+        {
+            if (!splineContainer) splineContainer = GetComponent<SplineContainer>();
+        }
+
+        void OnEnable()
+        {
+            if (!splineContainer) splineContainer = GetComponent<SplineContainer>();
+            if (!waypointRoot) waypointRoot = transform;
+            Build();
+        }
+
+        void Update()
+        {
+            if (rebuild)
+            {
+                rebuild = false;
+                Build();
+            }
+        }
+
+        public void Build()
+        {
+            Waypoints.Clear();
+            WaypointPositions.Clear();
+
+            RecommendedSpeeds.Clear();
+            Radii.Clear();
+            Curvatures.Clear();
+            TurnAnglesDeg.Clear();
+            Zones.Clear();
+
+            if (!splineContainer || splineContainer.Splines.Count == 0)
+                return;
+
+            var spline = splineContainer.Splines[0];
+            if (spline.Count < 2)
+                return;
+
+            bool closed = spline.Closed;
+
+            float length = SplineUtility.CalculateLength(spline, splineContainer.transform.localToWorldMatrix);
+            if (length <= 0.01f)
+                return;
+
+            int count = Mathf.Max(2, Mathf.FloorToInt(length / spacingMeters));
+            int sampleCount = closed ? count : (count + 1);
+
+            if (!waypointRoot) waypointRoot = transform;
+
+            // Clear old WPs
+            if (spawnGameObjects && clearOldOnBuild)
+            {
+                var toDelete = new List<Transform>();
+                for (int i = 0; i < waypointRoot.childCount; i++)
+                {
+                    var c = waypointRoot.GetChild(i);
+                    if (c.name.StartsWith(waypointNamePrefix))
+                        toDelete.Add(c);
+                }
+
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    foreach (var t in toDelete) DestroyImmediate(t.gameObject);
+                }
+                else
+#endif
+                {
+                    foreach (var t in toDelete) Destroy(t.gameObject);
+                }
+            }
+
+            // Sample positions + create waypoint objects
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t;
+                if (closed)
+                    t = i / (float)sampleCount; // 0..1 (exclusive of 1)
+                else
+                    t = (sampleCount <= 1) ? 0f : i / (float)(sampleCount - 1); // includes end
+
+                Vector3 localPos = SplineUtility.EvaluatePosition(spline, t);
+                Vector3 localTan = SplineUtility.EvaluateTangent(spline, t);
+
+                Vector3 worldPos = splineContainer.transform.TransformPoint(localPos);
+                Vector3 worldTan = splineContainer.transform.TransformDirection(localTan).normalized;
+
+                worldPos += Vector3.up * heightOffset;
+
+                WaypointPositions.Add(worldPos);
+
+                if (spawnGameObjects)
+                {
+                    var go = new GameObject($"{waypointNamePrefix}{i:000}");
+                    go.transform.SetParent(waypointRoot, worldPositionStays: true);
+                    go.transform.position = worldPos;
+
+                    if (alignRotationToTangent && worldTan.sqrMagnitude > 0.0001f)
+                        go.transform.rotation = Quaternion.LookRotation(FlattenIfNeeded(worldTan), Vector3.up);
+
+                    Waypoints.Add(go.transform);
+                }
+            }
+
+            // Prepare arrays
+            int n = WaypointPositions.Count;
+            if (n < 3)
+                return;
+
+            // Fill defaults
+            for (int i = 0; i < n; i++)
+            {
+                RecommendedSpeeds.Add(maxRecommendedSpeed);
+                Radii.Add(float.PositiveInfinity);
+                Curvatures.Add(0f);
+                TurnAnglesDeg.Add(0f);
+                Zones.Add(WaypointZoneType.Cruise);
+            }
+
+            if (!computeSpeedHints)
+                return;
+
+            // Compute curvature/radius/turn angle + recommended speed per WP
+            // Physics-ish corner speed: v = sqrt(mu * g * R)
+            const float g = 9.81f;
+
+            for (int i = 0; i < n; i++)
+            {
+                int iPrev = closed ? (i - 1 + n) % n : Mathf.Max(0, i - 1);
+                int iNext = closed ? (i + 1) % n : Mathf.Min(n - 1, i + 1);
+
+                Vector3 pPrev = WaypointPositions[iPrev];
+                Vector3 p = WaypointPositions[i];
+                Vector3 pNext = WaypointPositions[iNext];
+
+                Vector3 a = p - pPrev;
+                Vector3 b = pNext - p;
+
+                // Compute slope (for debug)
+                float slopeDeg = 0f;
+                {
+                    Vector3 dir = (pNext - p);
+                    float horiz = new Vector3(dir.x, 0f, dir.z).magnitude;
+                    if (horiz > 0.0001f)
+                        slopeDeg = Mathf.Atan2(dir.y, horiz) * Mathf.Rad2Deg;
+                }
+
+                Vector3 aDir = a.normalized;
+                Vector3 bDir = b.normalized;
+
+                if (usePlanarTurn)
+                {
+                    aDir = FlattenIfNeeded(aDir).normalized;
+                    bDir = FlattenIfNeeded(bDir).normalized;
+                }
+
+                float angleRad = Vector3.Angle(aDir, bDir) * Mathf.Deg2Rad;
+                float angleDeg = angleRad * Mathf.Rad2Deg;
+
+                TurnAnglesDeg[i] = angleDeg;
+
+                // If nearly straight, huge radius and max speed
+                if (angleDeg < straightAngleThresholdDeg || a.magnitude < 0.001f || b.magnitude < 0.001f)
+                {
+                    Radii[i] = float.PositiveInfinity;
+                    Curvatures[i] = 0f;
+                    RecommendedSpeeds[i] = maxRecommendedSpeed;
+                    ApplyHintToWaypointGo(i, angleDeg, Curvatures[i], Radii[i], RecommendedSpeeds[i],
+                        WaypointZoneType.Cruise, slopeDeg);
+                    continue;
+                }
+
+                // Approximate radius using chord length and turn angle:
+                // Use average segment length as local arc length approximation.
+                float avgSeg = 0.5f * (a.magnitude + b.magnitude);
+
+                // curvature k ~= angle / arcLength
+                float curvature = angleRad / Mathf.Max(0.0001f, avgSeg);
+                float radius = (curvature > 0.000001f) ? (1f / curvature) : float.PositiveInfinity;
+
+                Curvatures[i] = curvature;
+                Radii[i] = radius;
+
+                float v = Mathf.Sqrt(Mathf.Max(0f, frictionMu * g * radius)) * speedMultiplier;
+                v = Mathf.Clamp(v, minRecommendedSpeed, maxRecommendedSpeed);
+
+                RecommendedSpeeds[i] = v;
+
+                ApplyHintToWaypointGo(i, angleDeg, curvature, radius, v, Zones[i], slopeDeg);
+            }
+
+            // Mark braking zones
+            MarkBrakeAndAccelZones(closed);
+
+            // Apply final zones to waypoint components (if spawned)
+            for (int i = 0; i < n; i++)
+            {
+                ApplyHintToWaypointGo(i, TurnAnglesDeg[i], Curvatures[i], Radii[i], RecommendedSpeeds[i], Zones[i], 0f);
+            }
+        }
+
+        void MarkBrakeAndAccelZones(bool closed)
+        {
+            int n = WaypointPositions.Count;
+            if (n < 3) return;
+
+            // Detect “need to brake” at waypoint i based on lookahead minimum speed
+            for (int i = 0; i < n; i++)
+            {
+                float current = RecommendedSpeeds[i];
+
+                float minAhead = current;
+                int minAheadIndex = i;
+
+                for (int k = 1; k <= lookAheadWaypoints; k++)
+                {
+                    int j = i + k;
+                    if (closed)
+                        j %= n;
+                    else if (j >= n)
+                        break;
+
+                    float v = RecommendedSpeeds[j];
+                    if (v < minAhead)
+                    {
+                        minAhead = v;
+                        minAheadIndex = j;
+                    }
+                }
+
+                if (minAhead < current - brakeDeltaThreshold)
+                {
+                    // Mark some lead-up waypoints as Brake
+                    for (int lead = 0; lead <= brakeLeadWaypoints; lead++)
+                    {
+                        int b = i + lead;
+                        if (closed)
+                            b %= n;
+                        else if (b >= n)
+                            break;
+
+                        Zones[b] = WaypointZoneType.Brake;
+                    }
+
+                    // Mark after the slow corner as Accelerate
+                    for (int tail = 0; tail <= accelTailWaypoints; tail++)
+                    {
+                        int a = minAheadIndex + tail;
+                        if (closed)
+                            a %= n;
+                        else if (a >= n)
+                            break;
+
+                        // Don’t overwrite brake zones
+                        if (Zones[a] != WaypointZoneType.Brake)
+                            Zones[a] = WaypointZoneType.Accelerate;
+                    }
+                }
+            }
+
+            // Anything not set becomes Cruise
+            for (int i = 0; i < n; i++)
+            {
+                if (Zones[i] != WaypointZoneType.Brake && Zones[i] != WaypointZoneType.Accelerate)
+                    Zones[i] = WaypointZoneType.Cruise;
+            }
+        }
+
+        Vector3 FlattenIfNeeded(Vector3 v)
+        {
+            if (!usePlanarTurn) return v;
+            v.y = 0f;
+            return v.sqrMagnitude > 0.000001f ? v.normalized : Vector3.forward;
+        }
+
+        void ApplyHintToWaypointGo(int index, float angleDeg, float curvature, float radius, float recSpeed,
+            WaypointZoneType zone, float slopeDeg)
+        {
+            if (!spawnGameObjects) return;
+            if (index < 0 || index >= Waypoints.Count) return;
+
+            var t = Waypoints[index];
+            if (!t) return;
+
+            var hint = t.GetComponent<WaypointSpeedHint>();
+            if (!hint) hint = t.gameObject.AddComponent<WaypointSpeedHint>();
+
+            hint.turnAngleDeg = angleDeg;
+            hint.curvature = curvature;
+            hint.radius = radius;
+            hint.recommendedSpeed = recSpeed;
+            hint.zone = zone;
+
+            // only write slope if provided (avoid overwriting with 0 on second apply pass)
+            if (Mathf.Abs(slopeDeg) > 0.0001f)
+                hint.slopeDeg = slopeDeg;
+        }
+
+        void OnDrawGizmos()
+        {
+            if (!drawGizmos || WaypointPositions == null || WaypointPositions.Count == 0)
+                return;
+
+            for (int i = 0; i < WaypointPositions.Count; i++)
+            {
+                Color gizmoColor = Color.white;
+
+                // Preferred: read from WaypointSpeedHint component (if spawned)
+                if (spawnGameObjects && Waypoints != null && i < Waypoints.Count && Waypoints[i] != null)
+                {
+                    var hint = Waypoints[i].GetComponent<WaypointSpeedHint>();
+                    if (hint != null)
+                    {
+                        gizmoColor = ZoneToColor(hint.zone);
+                    }
+                }
+                // Fallback: read from Zones list (if not spawning GOs)
+                else if (Zones != null && i < Zones.Count)
+                {
+                    gizmoColor = ZoneToColor(Zones[i]);
+                }
+
+                Gizmos.color = gizmoColor;
+                Gizmos.DrawSphere(WaypointPositions[i], gizmoRadius);
+
+                // Draw connection line (slightly dimmer)
+                int next = i + 1;
+                if (next < WaypointPositions.Count)
+                {
+                    Gizmos.color = gizmoColor * 0.75f;
+                    Gizmos.DrawLine(WaypointPositions[i], WaypointPositions[next]);
+                }
+            }
+
+            Gizmos.color = Color.white; // reset
+        }
+
+        Color ZoneToColor(WaypointZoneType zone)
+        {
+            switch (zone)
+            {
+                case WaypointZoneType.Brake:
+                    return Color.red;
+
+                case WaypointZoneType.Accelerate:
+                    return Color.green;
+
+                case WaypointZoneType.Cruise:
+                default:
+                    return Color.white;
+            }
+        }
+    }
+}
