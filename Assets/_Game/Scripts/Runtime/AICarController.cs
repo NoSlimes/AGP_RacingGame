@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Unity.Cinemachine;
 
 public struct PathPoint
 {
@@ -43,7 +44,18 @@ namespace RacingGame
         private int currentindex = 0;
         private float maxSpeed = 50;
         private float currentSpeed = 20;
+        private float maxLatAccel = 8.0f;
+        private float steerInput;
+        private float signedAngle;
+        private float currentOffset = 0;
+        private Vector3 targetPosition;
+        private float throttle = 0;
+        private bool brake;
+        private bool brakingHard;
+        private bool sharpTurnAhead = false;
+        private float sharpTurnCurvature = 0.08f;
         private Transform thisTransform;
+        private Rigidbody rigidBody;
         List<Vector3> CenterLine;
         List<Vector3> RightEdge;
         List<Vector3> LeftEdge;
@@ -58,10 +70,9 @@ namespace RacingGame
 
         public void Initialize(Transform transform)
         { 
-            //playerCar = FindAnyObjectByType<PlayerCarInputs>();
             thisTransform = transform;
 
-            Rigidbody rb = thisTransform.GetComponent<Rigidbody>();
+            rigidBody = thisTransform.GetComponent<Rigidbody>();
         }
 
         public void PostInitialize()
@@ -120,10 +131,9 @@ namespace RacingGame
 
             totalDistance = CumulativeLength[n - 1];
 
+            currentSpeed = rigidBody.linearVelocity.magnitude;
+
             GameManager.Instance.RegisterTickable(this);
-            
-            //thisTransform.position = CenterLine[currentindex];
-            //currentindex++;
         }
 
         public void Deinitialize()
@@ -131,14 +141,110 @@ namespace RacingGame
 
         public void Tick()
         {
-            //just testing a lot
-            //targetWP = CenterLine[currentindex];
-
             FindClosestSegment();
             currentDistance = CumulativeLength[bestSegment] + bestT * SegmentLength[bestSegment];
 
             float progress = currentDistance / totalDistance;
 
+            GetSteering();
+            Offset();
+            ThrottleOrBrake();
+
+            MoveInput = new Vector2(steerInput, throttle);
+            BrakeInput = brake;
+            NitroInput = ShouldBoost();
+
+            //Gizmos.color = Color.red;
+            //Gizmos.DrawSphere(bestClosest, 0.3f);
+            //Gizmos.color = Color.green;
+            //Gizmos.DrawSphere(targetPosition, 0.3f);
+        }
+
+        bool ShouldBoost()
+        {
+            return false;
+        }
+
+        public void GetSteering()
+        {
+            float lookAheadDistance = Mathf.Lerp(15f, 40f, currentSpeed / maxSpeed);
+            if(sharpTurnAhead)
+            {
+                lookAheadDistance *= 0.6f;
+            }
+            float targetS = currentDistance + lookAheadDistance;
+            targetS %= totalDistance;
+
+            targetPosition = PositionAtDistance(targetS);
+
+            //Any different from pathForward?
+            Vector3 pathForwardv2 = (PositionAtDistance(targetS + 1f) - PositionAtDistance(targetS)).normalized;
+
+            Vector3 targetDirection = (targetPosition - thisTransform.position).normalized;
+
+            signedAngle = Vector3.SignedAngle(thisTransform.forward, targetDirection, Vector3.up);
+
+            float maxSteer = 30f;
+
+            steerInput = Mathf.Clamp(signedAngle / maxSteer, -1f, 1f);
+
+            if(brakingHard)
+            {
+                steerInput *= 0.6f;
+            }
+        }
+
+        public void ThrottleOrBrake()
+        {
+            float averageCurvature = EstimateCurvature();
+            sharpTurnAhead = averageCurvature > sharpTurnCurvature;
+            float safeSpeed = Mathf.Sqrt(maxLatAccel / Mathf.Max(averageCurvature, 0.001f));
+
+            float brakingDistance = EstimateBrakingDistance(currentSpeed, safeSpeed);
+            float distanceToTurn = 30f;
+
+            if (sharpTurnAhead)
+            {
+                safeSpeed *= 0.75f;
+                distanceToTurn = Mathf.Lerp(20f, 60f, averageCurvature / 0.08f);
+            }
+
+            brakingHard = sharpTurnAhead && currentSpeed > safeSpeed * 1.1f;
+
+            float widthFactor = WidthFactor();
+            float widthSpeedMultiplier = Mathf.Lerp(0.9f, 1.05f, widthFactor);
+            safeSpeed *= widthSpeedMultiplier;
+
+            float speedError = safeSpeed - currentSpeed;
+            float desiredThrottle;
+
+            //make public
+            float throttleGain = 0.5f;
+
+            if (speedError > 0)
+            {
+                desiredThrottle = Mathf.Clamp01(speedError * throttleGain);
+                brake = false;
+            }
+            else
+            {
+                desiredThrottle = 0;
+                brake = true;
+            }
+
+            if(brakingDistance > distanceToTurn)
+            {
+                desiredThrottle = 0;
+                brake = true;
+            }
+
+            //make public
+            float throttleResponse = 5.0f;
+            throttle = Mathf.MoveTowards(throttle, desiredThrottle, throttleResponse * Time.deltaTime);
+        }
+
+        public void Offset()
+        {
             Vector3 pathforward = pathPoints[bestSegment].forward;
             Vector3 pathRight = Vector3.Cross(Vector3.up, pathforward);
             Vector3 toCar = thisTransform.position - bestClosest;
@@ -147,59 +253,57 @@ namespace RacingGame
             //what is recoveryDistance?
             Vector3 recoveryTarget = bestClosest + pathforward * 10;
 
-            //what is lookAheadDistance?
-            float targetS = currentDistance + 10;
-            targetS %= totalDistance;
+            float halfWidth = pathPoints[bestSegment].trackWidth / 2;
+            float margin = 0.5f;
 
-            Vector3 targetPosition = PositionAtDistance(targetS);
+            float sharpTurnStrength = sharpTurnAhead ? 1.0f : 0.7f;
+            float turnSign = GetPathTurnSign(bestSegment);
+            float desiredOffset = -turnSign * halfWidth * sharpTurnStrength;
 
-            
+            desiredOffset = Mathf.Clamp(desiredOffset, -halfWidth + margin, halfWidth - margin);
 
-            Vector3 dirToMovePosition = (targetPosition - thisTransform.position).normalized;
-
-            float signedAngle = Vector3.SignedAngle(thisTransform.forward, dirToMovePosition, Vector3.up);
-
-            float maxSteer = 30f;
-
-            float steerinput = Mathf.Clamp(signedAngle / maxSteer, -1f, 1f);
-
-            MoveInput = new Vector2(steerinput, 0.5f);
-            //MoveInput = new Vector2(dirToMovePosition.x, dirToMovePosition.z);
-            BrakeInput = ShouldBrake();
-            NitroInput = ShouldBoost();
-
-            //Gizmos.color = Color.red;
-            //Gizmos.DrawSphere(bestClosest, 0.3f);
-            //Gizmos.color = Color.green;
-            //Gizmos.DrawSphere(targetPosition, 0.3f);
-            //Hard coded movement, just to test the car could read all waypoints. To be removed when Car Controlls are ready.
-            //thisTransform.position = Vector3.MoveTowards(thisTransform.position, targetWP, currentSpeed * Time.deltaTime);
-
-            //Rotation
-            float singleStep = 1.0f * Time.deltaTime;
-            Vector3 newDir = Vector3.RotateTowards(thisTransform.forward, dirToMovePosition, singleStep, 0.0f);
-            //thisTransform.rotation = Quaternion.LookRotation(newDir);
-
-            //Change Waypoint Index
-            float dot = Vector3.Dot(thisTransform.forward, dirToMovePosition);
-            if (dot <= 0)
+            if (Mathf.Abs(lateralOffset) > halfWidth)
             {
-                currentindex++;
-                if (currentindex >= CenterLine.Count)
-                {
-                    currentindex = 0;
-                }
+                desiredOffset = 0f;
             }
+
+            //make public
+            float offsetResponse = 2.5f;
+            currentOffset = Mathf.MoveTowards(currentOffset, desiredOffset, offsetResponse * Time.deltaTime);
+
+            targetPosition += pathRight * currentOffset;
         }
 
-        bool ShouldBrake()
+        public float WidthFactor()
         {
-            return false;
-        }
+            float widthAhead = 0f;
+            int widthSamples = 3;
+            int segIdx = 0;
 
-        bool ShouldBoost()
-        {
-            return false;
+            for(int i = 0; i < widthSamples; i++)
+            {
+                if((bestSegment + i) >= n - 1)
+                {
+                    segIdx = (bestSegment + i) % (n - 1);
+                }
+                else
+                {
+                    segIdx = bestSegment + i;
+                }
+                
+                int idx = Mathf.Min(segIdx, n - 1);
+                widthAhead += pathPoints[idx].trackWidth;
+            }
+
+            widthAhead /= widthSamples;
+
+            //make public
+            float minWidth = 6f;
+            float maxWidth = 14f;
+
+            float widthFactor = Mathf.InverseLerp(minWidth, maxWidth, widthAhead);
+
+            return widthFactor;
         }
 
         public void FindClosestSegment()
@@ -246,6 +350,53 @@ namespace RacingGame
             
             }
             return CenterLine[n - 1];
+        }
+
+        public float EstimateCurvature()
+        {
+            float lookAhead = sharpTurnAhead ? 80f : 50f;
+            int samples = 5;
+            float curvatureSum = 0.0f;
+
+            for (int i = 1; i <= samples; i++)
+            {
+                float s0 = currentDistance + (i - 1) * (lookAhead / samples);
+                float s1 = currentDistance + i * (lookAhead / samples);
+
+                Vector3 p0 = PositionAtDistance(s0);
+                Vector3 p1 = PositionAtDistance(s1);
+                Vector3 p2 = PositionAtDistance(s1 + 0.5f);
+
+                Vector3 d0 = (p1 - p0).normalized;
+                Vector3 d1 = (p2 - p1).normalized;
+
+                float angle = Vector3.Angle(d0, d1) * Mathf.Deg2Rad;
+                float segmentLength = (p2 - p0).magnitude;
+
+                float curvateture = angle / Mathf.Max(segmentLength, 0.001f);
+                curvatureSum += curvateture;
+            }
+
+            float averageCurvature = curvatureSum / samples;
+            return averageCurvature;
+        }
+
+        float GetPathTurnSign(int seg)
+        {
+            int i1 = (seg + 1) % (n - 1);
+            int i2 = (seg + 2) % (n - 1);
+
+            Vector3 d1 = pathPoints[i1].forward;
+            Vector3 d2 = pathPoints[i2].forward;
+
+            float sign = Mathf.Sign(Vector3.Cross(d1, d2).y);
+            return sign;
+        }
+
+        float EstimateBrakingDistance(float speed, float targetspeed)
+        {
+            float decel = maxLatAccel * 1.2f;
+            return (speed * speed - targetspeed * targetspeed) / (2f * decel);
         }
     }
 }
