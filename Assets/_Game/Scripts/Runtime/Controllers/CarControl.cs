@@ -94,7 +94,11 @@ namespace RacingGame
             {
                 nitroActive = true;
                 nitroTimer = nitroDuration;
-                Debug.Log("Nitro is active and max speed is " + effectiveMaxSpeed);
+
+                rigidBody.AddForce(
+                    transform.forward * motorTorque * nitroMultiplier,
+                    ForceMode.Impulse
+                );
             }
 
             foreach (var wheel in wheels)
@@ -133,10 +137,10 @@ namespace RacingGame
             // Hard speed clamp
             Vector3 flatVelocity = Vector3.ProjectOnPlane(rigidBody.linearVelocity, transform.up);
 
-            if (flatVelocity.magnitude > effectiveMaxSpeed)
+            if (!nitroActive && flatVelocity.magnitude > maxSpeed)
             {
                 rigidBody.linearVelocity =
-                    flatVelocity.normalized * effectiveMaxSpeed +
+                    flatVelocity.normalized * maxSpeed +
                     Vector3.Project(rigidBody.linearVelocity, transform.up);
             }
         }
