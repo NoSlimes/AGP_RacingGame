@@ -434,6 +434,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1024567238
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1024567240}
+  - component: {fileID: 1024567239}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1024567239
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1024567238}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8004d5fc029d884bb2b7378937b4669, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RacingGame.GameManager
+--- !u!4 &1024567240
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1024567238}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.99756, y: 0, z: -1.2333}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1681397932
 GameObject:
   m_ObjectHideFlags: 0
@@ -461,13 +505,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1681397932}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.39, z: -5.39}
+  m_LocalRotation: {x: 0.12169605, y: 0, z: 0, w: 0.9925674}
+  m_LocalPosition: {x: 0, y: 2.67, z: -5.94}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8776486173870780074}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 13.98, y: 0, z: 0}
 --- !u!114 &1681397934
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -621,59 +665,143 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1401270804204914197, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_Mass
-      value: 1400
+      value: 1595
+      objectReference: {fileID: 0}
+    - target: {fileID: 1401270804204914197, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_CollisionDetection
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3574116175340734853, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_Name
       value: car
       objectReference: {fileID: 0}
+    - target: {fileID: 3757907548629579678, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: motorized
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3757907548629579678, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: steerable
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_WheelDampingRate
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionDistance
-      value: 0.4
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_ForceAppPointDistance
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.damper
-      value: 4400
+      value: 4500
       objectReference: {fileID: 0}
     - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.spring
-      value: 34000
+      value: 35000
+      objectReference: {fileID: 0}
+    - target: {fileID: 4471746658077461950, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.targetPosition
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_WheelDampingRate
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionDistance
-      value: 0.4
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_ForceAppPointDistance
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.damper
-      value: 4400
+      value: 4500
       objectReference: {fileID: 0}
     - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.spring
-      value: 34000
+      value: 35000
+      objectReference: {fileID: 0}
+    - target: {fileID: 4785088378445621031, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.targetPosition
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4945409084220159564, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: motorized
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_WheelDampingRate
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionDistance
-      value: 0.4
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_ForceAppPointDistance
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.damper
-      value: 4400
+      value: 4500
       objectReference: {fileID: 0}
     - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.spring
-      value: 34000
+      value: 35000
+      objectReference: {fileID: 0}
+    - target: {fileID: 5156345524367595934, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.targetPosition
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: maxSpeed
+      value: 27.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: brakeTorque
+      value: 2000
+      objectReference: {fileID: 0}
+    - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: motorTorque
+      value: 2000
+      objectReference: {fileID: 0}
+    - target: {fileID: 7195755768934800096, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: motorized
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7195755768934800096, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: steerable
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_WheelDampingRate
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionDistance
-      value: 0.4
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_ForceAppPointDistance
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.damper
-      value: 4400
+      value: 4500
       objectReference: {fileID: 0}
     - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_SuspensionSpring.spring
-      value: 34000
+      value: 35000
+      objectReference: {fileID: 0}
+    - target: {fileID: 7343791122660476671, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: m_SuspensionSpring.targetPosition
+      value: 0.3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -696,3 +824,4 @@ SceneRoots:
   - {fileID: 261625517}
   - {fileID: 8776486173870780073}
   - {fileID: 638785252}
+  - {fileID: 1024567240}
