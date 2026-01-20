@@ -1,0 +1,161 @@
+using NoSlimes.UnityUtils.Common;
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace RacingGame
+{
+    public partial class GameManager
+    {
+        private void OnDrawGizmos()
+        {
+            foreach(var spawnPoint in carSpawner?.SpawnPositions ?? Array.Empty<(Vector3, Vector3)>())
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawSphere(spawnPoint.spawnPoint, 0.5f);
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawLine(spawnPoint.spawnPoint, spawnPoint.spawnPoint + spawnPoint.trackForward * 2.0f);
+            }
+        }
+
+        private class CarSpawner
+        {
+            private readonly PCGManager pCGManager;
+            private readonly CarControl carPrefab;
+            private readonly int carCount;
+
+            private readonly List<CarControl> spawnedCars = new();
+            private readonly (Vector3 spawnPoint, Vector3 trackForward)[] spawnPositions;
+
+            public CarControl PlayerCar { get; private set; }
+            public IReadOnlyList<CarControl> SpawnedCars => spawnedCars;
+            public IReadOnlyList<(Vector3 spawnPoint, Vector3 trackForward)> SpawnPositions => spawnPositions;
+
+            public event Action OnCarsSpawned;
+
+            public CarSpawner(PCGManager pCGManager, CarControl carPrefab, int carCount)
+            {
+                this.pCGManager = pCGManager;
+                this.carPrefab = carPrefab;
+                this.carCount = carCount;
+
+                spawnPositions = new (Vector3, Vector3)[carCount];
+                PrepareSpawnPositions();
+            }
+
+            public CarControl[] SpawnCars()
+            {
+                foreach (var (spawnPoint, trackForward) in spawnPositions)
+                {
+                    var forwardRotation = Quaternion.LookRotation(trackForward, Vector3.up);
+
+                    CarControl newCar = Instantiate(carPrefab, spawnPoint, forwardRotation);
+                    spawnedCars.Add(newCar);
+                }
+
+                var playerCarIndex = UnityEngine.Random.Range(0, spawnedCars.Count);
+                for (int i = 0; i < spawnedCars.Count; i++)
+                {
+                    CarControl car = spawnedCars[i];
+                    if (car.TryGetComponent(out CarInputComponent inputComp))
+                    {
+                        if (i == playerCarIndex)
+                        {
+                            inputComp.SetInputs(new PlayerCarInputs());
+                            PlayerCar = car;
+                        }
+                        else
+                        {
+                            var centerLine = pCGManager.Centerline;
+                            var leftEdge = pCGManager.LeftEdge;
+                            var rightEdge = pCGManager.RightEdge;
+
+                            var aiController = new AICarController(centerLine, rightEdge, leftEdge);
+                            inputComp.SetInputs(aiController);
+                        }
+                    }
+                }
+
+                OnCarsSpawned?.Invoke();
+                return spawnedCars.ToArray();
+            }
+
+            private void PrepareSpawnPositions()
+            {
+                for (int i = 0; i < carCount; i++)
+                {
+                    spawnPositions[i] = GetSpawnPosition(i);
+                }
+            }
+            private (Vector3, Vector3) GetSpawnPosition(int index)
+            {
+                var center = pCGManager.Centerline;
+                var left = pCGManager.LeftEdge;
+                var right = pCGManager.RightEdge;
+
+                float distanceBetweenPoints = Vector3.Distance(center[0], center[1]);
+                if (distanceBetweenPoints < 0.001f) distanceBetweenPoints = 0.1f; 
+
+                Bounds carBounds = carPrefab.transform.GetObjectBounds();
+                float carLength = carBounds.size.z;
+
+                float metersPerRow = carLength * 3.0f;
+
+                int indicesPerRow = Mathf.CeilToInt(metersPerRow / distanceBetweenPoints);
+
+                int row = index / 2;
+                bool isLeftLane = index % 2 == 0;
+
+                int startOffset = 10;
+                int targetIndex = startOffset + (row * indicesPerRow);
+
+                targetIndex = Mathf.Clamp(targetIndex, 0, center.Count - 1);
+                int nextIndex = Mathf.Clamp(targetIndex + 1, 0, center.Count - 1);
+
+                Vector3 centerPt = center[targetIndex];
+                Vector3 leftPt = left[targetIndex];
+                Vector3 rightPt = right[targetIndex];
+
+                Vector3 forward = (center[nextIndex] - centerPt).normalized;
+                if (forward == Vector3.zero) forward = carPrefab.transform.forward;
+
+                Vector3 spawnPoint;
+                if (isLeftLane)
+                {
+                    spawnPoint = Vector3.Lerp(centerPt, leftPt, 0.5f);
+                }
+                else
+                {
+                    spawnPoint = Vector3.Lerp(centerPt, rightPt, 0.5f);
+                }
+
+                spawnPoint += Vector3.up * 1.0f;
+
+                return (spawnPoint, forward);
+            }
+
+            public void ResetCars()
+            {
+                for (int i = 0; i < spawnedCars.Count; i++)
+                {
+                    CarControl car = spawnedCars[i];
+                    var (spawnPoint, trackForward) = spawnPositions[i];
+
+                    if (car.TryGetComponent(out Rigidbody rb))
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+
+                        rb.ResetInertiaTensor();
+                    }
+
+                    car.transform.SetPositionAndRotation(
+                        spawnPoint, 
+                        Quaternion.LookRotation(trackForward, Vector3.up));
+
+                    //car.Reset();
+                }
+            }
+        }
+    }
+}
