@@ -27,7 +27,7 @@ namespace RacingGame
 
         private void OnEnable()
         {
-            CarControl playerCar = GameManager.Instance.GetPlayerCar();
+            Car playerCar = GameManager.Instance.GetPlayerCar();
             if (playerCar != null)
             {
                 SetFollowTarget(playerCar.transform);
@@ -44,7 +44,7 @@ namespace RacingGame
             GameManager.Instance.OnPlayerCarAssigned -= SetFollowTarget;
         }
 
-        private void SetFollowTarget(CarControl car)
+        private void SetFollowTarget(Car car)
         {
             SetFollowTarget(car.transform);
         }
