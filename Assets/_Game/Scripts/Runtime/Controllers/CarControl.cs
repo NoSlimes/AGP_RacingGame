@@ -149,7 +149,6 @@ namespace RacingGame
                 if (brakeInput)
                 {
                     wheel.WheelCollider.brakeTorque = brakeTorque;
-                    // TODO: add trail mark effect when braking
                     StartEmmiter();
                     continue;
                 }
