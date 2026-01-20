@@ -232,6 +232,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &321998476 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3574116175340734853, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+  m_PrefabInstance: {fileID: 8776486173870780073}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &617112297
 GameObject:
   m_ObjectHideFlags: 0
@@ -463,6 +468,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8004d5fc029d884bb2b7378937b4669, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RacingGame.GameManager
+  carPrefab: {fileID: 8776486173870780076}
+  carCount: 2
 --- !u!4 &1024567240
 Transform:
   m_ObjectHideFlags: 0
@@ -505,7 +512,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1681397932}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.12169605, y: 0, z: 0, w: 0.9925674}
+  m_LocalRotation: {x: 0.12169605, y: -0, z: -0, w: 0.9925674}
   m_LocalPosition: {x: 0, y: 2.67, z: -5.94}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -761,7 +768,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: maxSpeed
-      value: 27.5
+      value: 200
       objectReference: {fileID: 0}
     - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: brakeTorque
@@ -770,6 +777,18 @@ PrefabInstance:
     - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: motorTorque
       value: 2000
+      objectReference: {fileID: 0}
+    - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: nitroCooldown
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: nitroDuration
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: nitroMultiplier
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7195755768934800096, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: motorized
@@ -809,13 +828,40 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 199244956314484332, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1681397933}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3574116175340734853, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8776486173870780078}
   m_SourcePrefab: {fileID: 100100000, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
 --- !u!4 &8776486173870780074 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 199244956314484332, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
   m_PrefabInstance: {fileID: 8776486173870780073}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8776486173870780076 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+  m_PrefabInstance: {fileID: 8776486173870780073}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 321998476}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5546d23f2a9923c40af7c75323afd50f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarControl
+--- !u!114 &8776486173870780078
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 321998476}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f3653d41cb94df4fa9d200fbf2342a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RacingGame.Speedometer
+  showDebugLogs: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

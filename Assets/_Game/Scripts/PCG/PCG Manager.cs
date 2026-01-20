@@ -7,6 +7,10 @@ namespace RacingGame
 {
     public class PCGManager : MonoBehaviour
     {
+#if UNITY_EDITOR
+        private bool _queuedRegen;
+#endif
+
         public static PCGManager Instance;
 
         // Track
@@ -20,8 +24,7 @@ namespace RacingGame
         [SerializeField, Range(0f, 1f)] private float straightChance = 0.45f;
 
         // Sampling
-        [Header("Sampling")] [SerializeField] private int samplesPerSegment = 16;
-        [SerializeField] private float roadWidth = 8f;
+        [Header("Sampling")] [SerializeField] private float roadWidth = 8f;
         [SerializeField, Range(0, 1f)] private float bezierTension = 0.35f;
         [SerializeField] private int bezierSamplesPerCorner = 12;
 
@@ -82,8 +85,17 @@ namespace RacingGame
         {
             EnsureComponents();
 #if UNITY_EDITOR
-            if (!Application.isPlaying)
+            if (Application.isPlaying) return;
+            if (_queuedRegen) return;
+
+            _queuedRegen = true;
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                _queuedRegen = false;
+                if (this == null) return;
+
                 Generate();
+            };
 #endif
         }
 
@@ -103,9 +115,7 @@ namespace RacingGame
             ClearPCG();
 
             _generatedWallsRoot = GetOrCreateChild(transform, "_Generated_Walls");
-
-            Transform wpRootParent = waypointParent ? waypointParent : transform;
-            _generatedWaypointsRoot = GetOrCreateChild(wpRootParent, "_Generated_Waypoints");
+            _generatedWaypointsRoot = GetOrCreateChild(transform, "_Generated_Waypoints");
 
             int usedSeed = randomizeSeed ? Random.Range(int.MinValue / 2, int.MaxValue / 2) : seed;
             var rng = new System.Random(usedSeed);
@@ -117,7 +127,6 @@ namespace RacingGame
             float autoSmooth = Mathf.Clamp01(postHullSmoothing - (hullInsertJitter / 200f));
             cps = SmoothRing(cps, autoSmooth, 1);
             Centerline = SampleClosedBezierChain(cps, bezierTension, bezierSamplesPerCorner);
-            // Centerline = SampleClosedCatmullRom(cps, samplesPerSegment);
 
             // Build Road
             BuildEdges(Centerline, roadWidth * 0.5f, RightEdge, LeftEdge);
@@ -336,69 +345,6 @@ namespace RacingGame
             return pts;
         }
 
-        private List<Vector3> SampleClosedCatmullRom(List<Vector3> cps, int samplesPerSeg)
-        {
-            List<Vector3> result = new();
-            int n = cps.Count;
-
-            if (n < 4) return result;
-
-            const float alpha = 0.5f;
-
-            for (int i = 0; i < n; i++)
-            {
-                Vector3 p0 = cps[(i - 1 + n) % n];
-                Vector3 p1 = cps[i];
-                Vector3 p2 = cps[(i + 1) % n];
-                Vector3 p3 = cps[(i + 2) % n];
-
-                // Parameter points (centripetal)
-                float t0 = 0f;
-                float t1 = GetT(t0, p0, p1, alpha);
-                float t2 = GetT(t1, p1, p2, alpha);
-                float t3 = GetT(t2, p2, p3, alpha);
-
-                for (int s = 0; s < samplesPerSeg; s++)
-                {
-                    float t = Mathf.Lerp(t1, t2, s / (float)samplesPerSeg);
-                    result.Add(CentripetalCR(p0, p1, p2, p3, t0, t1, t2, t3, t));
-                }
-            }
-
-            return result;
-        }
-
-        private float GetT(float t, Vector3 p0, Vector3 p1, float alpha)
-        {
-            float d = Vector3.Distance(p0, p1);
-
-            d = Mathf.Max(d, 0.0001f);
-            return t + Mathf.Pow(d, alpha);
-        }
-
-        Vector3 CentripetalCR(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t0, float t1, float t2, float t3,
-            float t)
-        {
-            // Linear blend
-            Vector3 A1 = LerpSafe(p0, p1, t0, t1, t);
-            Vector3 A2 = LerpSafe(p1, p2, t1, t2, t);
-            Vector3 A3 = LerpSafe(p2, p3, t2, t3, t);
-
-            Vector3 B1 = LerpSafe(A1, A2, t0, t2, t);
-            Vector3 B2 = LerpSafe(A2, A3, t1, t3, t);
-
-            Vector3 C = LerpSafe(B1, B2, t1, t2, t);
-            return C;
-        }
-
-        Vector3 LerpSafe(Vector3 a, Vector3 b, float ta, float tb, float t)
-        {
-            float denom = tb - ta;
-            if (Mathf.Abs(denom) < 0.000001f) return a;
-            float u = (t - ta) / denom;
-            return Vector3.LerpUnclamped(a, b, u);
-        }
-
         private void BuildEdges(List<Vector3> center, float halfWidth, List<Vector3> right, List<Vector3> left)
         {
             right.Clear();
@@ -521,10 +467,8 @@ namespace RacingGame
             go.name = $"Wall_{sideSign}_{i}";
         }
 
-
         private void GenerateWaypointsObjects(List<Vector3> center)
         {
-            Transform parent = waypointParent ? waypointParent : transform;
             Vector3 up = transform.up;
 
             float acc = 0f;
@@ -558,8 +502,7 @@ namespace RacingGame
         private void ClearPCG()
         {
             // Clear waypoints
-            Transform wpRootParent = waypointParent ? waypointParent : transform;
-            var wpRoot = wpRootParent.Find("_Generated_Waypoints");
+            var wpRoot = transform.Find("_Generated_Waypoints");
             if (wpRoot != null) DestroyChildren(wpRoot);
 
             // Clear walls
