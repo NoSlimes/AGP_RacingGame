@@ -1,34 +1,27 @@
 using RacingGame;
 using UnityEngine;
 
-public class WheelControl : TickableBehaviour
+[RequireComponent(typeof(WheelCollider))]
+public class WheelControl : TickableBehaviour, ICarComponent
 {
-    public Transform wheelModel;
+    [SerializeField] private Transform wheelModel;
+    [field: SerializeField] public bool Steerable { get; private set; }
+    [field: SerializeField] public bool Motorized { get; private set; }
 
-    [HideInInspector] public WheelCollider WheelCollider;
+    public WheelCollider WheelCollider { get; private set; }
 
-    // Create properties for the CarControl script
-    // (You should enable/disable these via the 
-    // Editor Inspector window)
-    public bool steerable;
-    public bool motorized;
+    private Vector3 position;
+    private Quaternion rotation;
 
-    Vector3 position;
-    Quaternion rotation;
-
-    // Start is called before the first frame update
-    private void Awake()
+    public void Initialize(Car ownerCar)
     {
         WheelCollider = GetComponent<WheelCollider>();
     }
 
-    // Update is called once per frame
     public override void Tick()
     {
-        // Get the Wheel collider's world pose values and
-        // use them to set the wheel model's position and rotation
         WheelCollider.GetWorldPose(out position, out rotation);
-        wheelModel.transform.position = position;
-        wheelModel.transform.rotation = rotation;
+        wheelModel.transform.SetPositionAndRotation(position, rotation);
     }
+
 }
