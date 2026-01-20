@@ -20,8 +20,10 @@ namespace RacingGame
         [SerializeField, Range(0f, 1f)] private float straightChance = 0.45f;
 
         // Sampling
-        [SerializeField] private int samplesPerSegment = 16;
+        [Header("Sampling")] [SerializeField] private int samplesPerSegment = 16;
         [SerializeField] private float roadWidth = 8f;
+        [SerializeField, Range(0, 1f)] private float bezierTension = 0.35f;
+        [SerializeField] private int bezierSamplesPerCorner = 12;
 
         // Road Mesh
         [Header("Road mesh")] [SerializeField] private Material roadMaterial;
@@ -114,7 +116,8 @@ namespace RacingGame
             // Smoothen
             float autoSmooth = Mathf.Clamp01(postHullSmoothing - (hullInsertJitter / 200f));
             cps = SmoothRing(cps, autoSmooth, 1);
-            Centerline = SampleClosedCatmullRom(cps, samplesPerSegment);
+            Centerline = SampleClosedBezierChain(cps, bezierTension, bezierSamplesPerCorner);
+            // Centerline = SampleClosedCatmullRom(cps, samplesPerSegment);
 
             // Build Road
             BuildEdges(Centerline, roadWidth * 0.5f, RightEdge, LeftEdge);
@@ -159,7 +162,7 @@ namespace RacingGame
             {
                 Vector2 a = hull[i];
                 Vector2 b = hull[(i + 1) % hull.Count];
-                
+
                 bool makeStraight = rng.NextDouble() < straightChance;
 
                 for (int s = 0; s <= hullSubdivisionCount; s++)
@@ -174,7 +177,8 @@ namespace RacingGame
 
                     if (!makeStraight)
                     {
-                        float jitter = (float)(rng.NextDouble() * 2f - 1f) * hullInsertJitter;
+                        float w = Mathf.Sin(t * Mathf.PI);
+                        float jitter = (float)(rng.NextDouble() * 2f - 1f) * hullInsertJitter * w;
                         p += n * jitter;
                     }
 
@@ -190,6 +194,93 @@ namespace RacingGame
                     cps.RemoveAt(i);
             return cps;
         }
+
+        private List<Vector3> SampleClosedBezierChain(List<Vector3> knots, float tension, int samplesPerCorner)
+        {
+            List<Vector3> result = new();
+            int n = knots.Count;
+            if (n < 3) return result;
+
+            // Handles for each knot
+            Vector3[] inH = new Vector3[n];
+            Vector3[] outH = new Vector3[n];
+
+            Vector3 up = transform.up;
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 pPrev = knots[(i - 1 + n) % n];
+                Vector3 p = knots[i];
+                Vector3 pNext = knots[(i + 1) % n];
+
+                // Prevent vertical rotation
+                Vector3 vPrev = Vector3.ProjectOnPlane(p - pPrev, up);
+                Vector3 vNext = Vector3.ProjectOnPlane(pNext - p, up);
+
+                float lenPrev = vPrev.magnitude;
+                float lenNext = vNext.magnitude;
+
+                if (lenPrev < 0.0001f || lenNext < 0.0001f)
+                {
+                    inH[i] = p;
+                    outH[i] = p;
+                    continue;
+                }
+
+                Vector3 dirPrev = vPrev / lenPrev;
+                Vector3 dirNext = vNext / lenNext;
+
+                // Tangent dir
+                Vector3 tangent = (dirPrev + dirNext);
+                tangent = Vector3.ProjectOnPlane(tangent, up);
+
+                if (tangent.sqrMagnitude < 0.0001f)
+                {
+                    tangent = dirNext;
+                }
+
+                tangent.Normalize();
+
+                // Handle length
+                float handleLenIn = lenPrev * tension;
+                float handleLenOut = lenNext * tension;
+
+                // Incoming handle
+                inH[i] = p - tangent * handleLenIn;
+                outH[i] = p + tangent * handleLenOut;
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                int j = (i + 1) % n;
+
+                Vector3 p0 = knots[i];
+                Vector3 p1 = outH[i];
+                Vector3 p2 = inH[j];
+                Vector3 p3 = knots[j];
+
+                for (int s = 0; s < samplesPerCorner; s++)
+                {
+                    float t = s / (float)samplesPerCorner;
+                    result.Add(CubicBezier(p0, p1, p2, p3, t));
+                }
+            }
+
+            return result;
+        }
+
+        private Vector3 CubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        {
+            float u = 1f - t;
+            float tt = t * t;
+            float uu = u * u;
+            float uuu = uu * u;
+            float ttt = tt * t;
+
+            // Bernstein
+            return (uuu * p0) + (3f * uu * t * p1) + (3 * u * tt * p2) + (ttt * p3);
+        }
+
 
         private static List<Vector2> ConvexHull(List<Vector2> points)
         {
@@ -250,6 +341,10 @@ namespace RacingGame
             List<Vector3> result = new();
             int n = cps.Count;
 
+            if (n < 4) return result;
+
+            const float alpha = 0.5f;
+
             for (int i = 0; i < n; i++)
             {
                 Vector3 p0 = cps[(i - 1 + n) % n];
@@ -257,23 +352,51 @@ namespace RacingGame
                 Vector3 p2 = cps[(i + 1) % n];
                 Vector3 p3 = cps[(i + 2) % n];
 
+                // Parameter points (centripetal)
+                float t0 = 0f;
+                float t1 = GetT(t0, p0, p1, alpha);
+                float t2 = GetT(t1, p1, p2, alpha);
+                float t3 = GetT(t2, p2, p3, alpha);
+
                 for (int s = 0; s < samplesPerSeg; s++)
                 {
-                    float t = s / (float)samplesPerSeg;
-                    result.Add(CatmullRom(p0, p1, p2, p3, t));
+                    float t = Mathf.Lerp(t1, t2, s / (float)samplesPerSeg);
+                    result.Add(CentripetalCR(p0, p1, p2, p3, t0, t1, t2, t3, t));
                 }
             }
 
             return result;
         }
 
-        private Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        private float GetT(float t, Vector3 p0, Vector3 p1, float alpha)
         {
-            float t2 = t * t;
-            float t3 = t2 * t;
+            float d = Vector3.Distance(p0, p1);
 
-            return 0.5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 +
-                           (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+            d = Mathf.Max(d, 0.0001f);
+            return t + Mathf.Pow(d, alpha);
+        }
+
+        Vector3 CentripetalCR(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t0, float t1, float t2, float t3,
+            float t)
+        {
+            // Linear blend
+            Vector3 A1 = LerpSafe(p0, p1, t0, t1, t);
+            Vector3 A2 = LerpSafe(p1, p2, t1, t2, t);
+            Vector3 A3 = LerpSafe(p2, p3, t2, t3, t);
+
+            Vector3 B1 = LerpSafe(A1, A2, t0, t2, t);
+            Vector3 B2 = LerpSafe(A2, A3, t1, t3, t);
+
+            Vector3 C = LerpSafe(B1, B2, t1, t2, t);
+            return C;
+        }
+
+        Vector3 LerpSafe(Vector3 a, Vector3 b, float ta, float tb, float t)
+        {
+            float denom = tb - ta;
+            if (Mathf.Abs(denom) < 0.000001f) return a;
+            float u = (t - ta) / denom;
+            return Vector3.LerpUnclamped(a, b, u);
         }
 
         private void BuildEdges(List<Vector3> center, float halfWidth, List<Vector3> right, List<Vector3> left)
