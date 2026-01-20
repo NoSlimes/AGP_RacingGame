@@ -44,3 +44,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8004d5fc029d884bb2b7378937b4669, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RacingGame.GameManager
+  carPrefab: {fileID: 6556300916948461343, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+  carCount: 6
