@@ -15,7 +15,7 @@ namespace RacingGame
         [SerializeField] private float centreOfGravityOffset = -1f;
 
         [Header("Nitro Configurations")]
-        [SerializeField] private float nitroMultiplier; // How strong the nitro boos is
+        [SerializeField] private float nitroMultiplier; // How strong the nitro boost is
         [SerializeField] private float nitroDuration; // For how long is the boost going to last
         [SerializeField] private float nitroCooldown; // how long is the cooldown before we can boost again
         private float nitroTimer;
@@ -52,7 +52,7 @@ namespace RacingGame
             // Read the Vector2 input from the new Input System
             Vector2 inputVector = carInput.Inputs.MoveInput;
 
-            // Reed nitro and break Input
+            // Read nitro and break Input
             bool nitroInput = carInput.Inputs.NitroInput;
             bool brakeInput = carInput.Inputs.BrakeInput;
 
@@ -75,7 +75,7 @@ namespace RacingGame
             // Determine if the player is accelerating or trying to reverse
             bool isAccelerating = !brakeInput && Mathf.Sign(vInput) == Mathf.Sign(forwardSpeed);
 
-            // Decrese the nitro timer if we are curently using nitro boost
+            // Decrease the nitro timer if we are curently using nitro boost
             if (nitroActive)
             {
                 nitroTimer -= Time.fixedDeltaTime;
@@ -173,7 +173,7 @@ namespace RacingGame
             }
         }
 
-        // Activates the notro timer
+        // Activates the nitro timer
         public void NitroBoost()
         {
             if (nitroActive || nitroOnCooldown)
