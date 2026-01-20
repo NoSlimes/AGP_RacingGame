@@ -95,7 +95,7 @@ namespace RacingGame
         public void Tick()
         {
             _inputMove = _carInputs.Inputs.MoveInput;
-            _isBraking = _carInputs.Inputs.BrakeInput;
+            _isBraking = _carInputs.Inputs.HandBrakeInput;
             _isNitro = _carInputs.Inputs.NitroInput;
 
             UpdateEngineAudio();

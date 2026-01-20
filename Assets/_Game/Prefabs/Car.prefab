@@ -620,7 +620,7 @@ Rigidbody:
   m_Mass: 1500
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_CenterOfMass: {x: 0, y: 0.25, z: -0.35}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
   m_IncludeLayers:
@@ -629,7 +629,7 @@ Rigidbody:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_ImplicitCom: 1
+  m_ImplicitCom: 0
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
@@ -664,11 +664,10 @@ MonoBehaviour:
   brakeTorque: 2000
   maxSpeed: 20
   steeringRange: 30
-  steeringRangeAtMaxSpeed: 10
-  centreOfGravityOffset: -1
-  nitroMultiplier: 0
-  nitroDuration: 0
-  nitroCooldown: 0
+  steeringRangeAtMaxSpeed: 30
+  nitroMultiplier: 2
+  nitroDuration: 0.2
+  nitroCooldown: 2
 --- !u!114 &8842448982863406061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -707,11 +706,11 @@ MonoBehaviour:
   minVolume: 0.4
   maxVolume: 1
   slipAudioSource: {fileID: 236310068069092322}
-  slipStart: 0.5
+  slipStart: 0.75
   slipFull: 1
-  slipAudioVolume: 0.5
+  slipAudioVolume: 0.25
   skidTrailPrefab: {fileID: 707103282903700802, guid: dabda883eb3cfef4ea6aa5c82fed5b84, type: 3}
-  skidSlipThreshold: 0.4
+  skidSlipThreshold: 0.75
 --- !u!1 &4408540689925529881
 GameObject:
   m_ObjectHideFlags: 0

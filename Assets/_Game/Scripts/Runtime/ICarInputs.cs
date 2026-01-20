@@ -6,7 +6,7 @@ namespace RacingGame
     public interface ICarInputs
     {
         Vector2 MoveInput { get; }
-        bool BrakeInput { get; }
+        bool HandBrakeInput { get; }
         public bool NitroInput { get; }
 
         void Initialize(Transform ownerTransform);

@@ -55,7 +55,7 @@ namespace RacingGame
         private void Update()
         {
             // Brakes
-            if (CarInput.Inputs.BrakeInput)
+            if (CarInput.Inputs.HandBrakeInput)
                 Breaking = true;          
             else
                 Breaking = false;

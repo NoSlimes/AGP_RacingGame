@@ -1,8 +1,8 @@
-using NUnit.Framework.Interfaces;
+using System.Linq;
 using UnityEngine;
+
 namespace RacingGame
 {
-
     [RequireComponent(typeof(Rigidbody), typeof(CarInputComponent))]
     public class CarControl : MonoBehaviour, ICarComponent
     {
@@ -12,21 +12,23 @@ namespace RacingGame
         [SerializeField] private float maxSpeed = 20f;
         [SerializeField] private float steeringRange = 30f;
         [SerializeField] private float steeringRangeAtMaxSpeed = 10f;
-        [SerializeField] private float centreOfGravityOffset = -1f;
+        //[SerializeField] private float centreOfGravityOffset = -1f;
 
         [Header("Nitro Configurations")]
         [SerializeField] private float nitroMultiplier; // How strong the nitro boost is
         [SerializeField] private float nitroDuration; // For how long is the boost going to last
         [SerializeField] private float nitroCooldown; // how long is the cooldown before we can boost again
-        private float nitroTimer;
 
         private WheelControl[] wheels;
+        private WheelControl[] frontWheels;
+        private WheelControl[] rearWheels;
         private Rigidbody rigidBody;
+        private CarInputComponent carInput;
 
         private bool nitroActive;
         private bool nitroOnCooldown;
-
-        private CarInputComponent carInput;
+        private float nitroTimer;
+        private float nitroCooldownTimer;
 
         public float MaxSpeed => maxSpeed;
         public float SteeringRange => steeringRange;
@@ -36,15 +38,21 @@ namespace RacingGame
         public float NitroDuration => nitroDuration;
         public float NitroCooldown => nitroCooldown;
 
-        public void Initialize(Car ownerCar) 
+        public void Initialize(Car ownerCar)
         {
             carInput = ownerCar.GetCarComponent<CarInputComponent>();
             rigidBody = ownerCar.Rigidbody;
             wheels = ownerCar.GetCarComponents<WheelControl>();
 
-            Vector3 centerOfMass = rigidBody.centerOfMass;
-            centerOfMass.y += centreOfGravityOffset;
-            rigidBody.centerOfMass = centerOfMass;
+            frontWheels = wheels.Where(w => w.IsFront).ToArray();
+            rearWheels = wheels.Where(w => !w.IsFront).ToArray();
+
+            // ---------------------------------
+            // This really messed with the center of mass. This is what caused the extreme spin outs.
+            // ---------------------------------
+            //Vector3 centerOfMass = rigidBody.centerOfMass;
+            //centerOfMass.y += centreOfGravityOffset;
+            //rigidBody.centerOfMass = centerOfMass;
         }
 
         // FixedUpdate is called at a fixed time interval
@@ -55,7 +63,7 @@ namespace RacingGame
 
             // Read nitro and break Input
             bool nitroInput = carInput.Inputs.NitroInput;
-            bool brakeInput = carInput.Inputs.BrakeInput;
+            bool handBrakeInput = carInput.Inputs.HandBrakeInput;
 
             // Get player input for acceleration and steering
             float vInput = inputVector.y; // Forward/backward input
@@ -74,20 +82,26 @@ namespace RacingGame
             float currentSteerRange = Mathf.Lerp(steeringRange, steeringRangeAtMaxSpeed, speedFactor);
 
             // Determine if the player is accelerating or trying to reverse
-            bool isAccelerating = !brakeInput && Mathf.Sign(vInput) == Mathf.Sign(forwardSpeed);
+            bool isAccelerating = !handBrakeInput && Mathf.Sign(vInput) == Mathf.Sign(forwardSpeed);
 
             // Decrease the nitro timer if we are curently using nitro boost
             if (nitroActive)
             {
                 nitroTimer -= Time.fixedDeltaTime;
 
-                // Start cooldown and deactivate nitro
                 if (nitroTimer <= 0f)
                 {
                     nitroActive = false;
                     nitroOnCooldown = true;
-                    Invoke(nameof(ResetNitroCooldown), nitroCooldown);
+                    nitroCooldownTimer = nitroCooldown;
                 }
+            }
+            else if (nitroOnCooldown)
+            {
+                nitroCooldownTimer -= Time.fixedDeltaTime;
+
+                if (nitroCooldownTimer <= 0f)
+                    nitroOnCooldown = false;
             }
 
             // Activate nitro
@@ -102,8 +116,8 @@ namespace RacingGame
                 );
             }
 
-            foreach (var wheel in wheels)
-            {             
+            foreach (WheelControl wheel in wheels)
+            {
                 // Apply Speed based traction
                 WheelFrictionCurve sideways = wheel.WheelCollider.sidewaysFriction;
                 sideways.stiffness = Mathf.Lerp(2.0f, 0.9f, speedFactor);
@@ -134,11 +148,14 @@ namespace RacingGame
                     wheel.WheelCollider.brakeTorque = Mathf.Abs(vInput) * brakeTorque;
                 }
 
-                // Apply breaking
-                if (brakeInput)
-                {
+
+            }
+
+            // Apply breaking
+            if (handBrakeInput)
+            {
+                foreach (WheelControl wheel in rearWheels)
                     wheel.WheelCollider.brakeTorque = brakeTorque;
-                }
             }
 
             // Hard speed clamp
@@ -147,12 +164,12 @@ namespace RacingGame
             if (!nitroActive && flatVelocity.magnitude > maxSpeed)
             {
                 rigidBody.linearVelocity =
-                    flatVelocity.normalized * maxSpeed +
+                    (flatVelocity.normalized * maxSpeed) +
                     Vector3.Project(rigidBody.linearVelocity, transform.up);
             }
 
             // Engine Drag
-            if (Mathf.Abs(vInput) < 0.1f && !brakeInput)
+            if (Mathf.Abs(vInput) < 0.1f && !handBrakeInput)
             {
                 rigidBody.AddForce(
                     -transform.forward * forwardSpeed * 0.5f,
@@ -164,10 +181,10 @@ namespace RacingGame
         private void OnDrawGizmos()
         {
             // Visualize the center of mass in the editor
-            if (rigidBody != null)
+            if (TryGetComponent<Rigidbody>(out Rigidbody rb))
             {
-                Gizmos.color = Color.red;
-                Vector3 comPosition = transform.position + rigidBody.centerOfMass;
+                Gizmos.color = Color.green;
+                Vector3 comPosition = transform.position + rb.centerOfMass;
                 Gizmos.DrawSphere(comPosition, 0.1f);
             }
 
@@ -176,8 +193,8 @@ namespace RacingGame
             {
                 Vector2 inputVector = carInput.Inputs.MoveInput;
                 Gizmos.color = Color.green;
-                Vector3 inputDirection = transform.right * inputVector.x + transform.forward * inputVector.y;
-                Gizmos.DrawLine(transform.position, transform.position + inputDirection * 2f);
+                Vector3 inputDirection = (transform.right * inputVector.x) + (transform.forward * inputVector.y);
+                Gizmos.DrawLine(transform.position, transform.position + (inputDirection * 2f));
             }
 
             // Visualize the movement direction
@@ -185,23 +202,8 @@ namespace RacingGame
             {
                 Gizmos.color = Color.blue;
                 Vector3 velocityDirection = rigidBody.linearVelocity.normalized;
-                Gizmos.DrawLine(transform.position, transform.position + velocityDirection * 2f);
+                Gizmos.DrawLine(transform.position, transform.position + (velocityDirection * 2f));
             }
-        }
-
-        // Activates the nitro timer
-        public void NitroBoost()
-        {
-            if (nitroActive || nitroOnCooldown)
-                return;
-
-            nitroActive = true;
-            nitroTimer = nitroDuration;
-        }
-
-        public void ResetNitroCooldown()
-        {
-            nitroOnCooldown = false;
         }
     }
 }

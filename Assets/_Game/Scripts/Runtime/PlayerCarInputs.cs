@@ -8,7 +8,7 @@ namespace RacingGame
     public class PlayerCarInputs : ICarInputs, IDisposable
     {
         public Vector2 MoveInput { get; private set; }
-        public bool BrakeInput { get; private set; }
+        public bool HandBrakeInput { get; private set; }
         public bool NitroInput { get; private set; }
 
         public void Initialize(Transform ownerTransform)
@@ -37,7 +37,7 @@ namespace RacingGame
 
         private void OnBrake(UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
-            BrakeInput = context.performed;
+            HandBrakeInput = context.performed;
         }
 
         private void OnNitro(UnityEngine.InputSystem.InputAction.CallbackContext context)

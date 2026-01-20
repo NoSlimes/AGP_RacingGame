@@ -29,7 +29,7 @@ namespace RacingGame
         }
 
         public Vector2 MoveInput { get; private set; }
-        public bool BrakeInput { get; private set; }
+        public bool HandBrakeInput { get; private set; }
         public bool NitroInput { get; private set; }
 
         //private PlayerCarInputs playerCar;
@@ -151,7 +151,7 @@ namespace RacingGame
             ThrottleOrBrake();
 
             MoveInput = new Vector2(steerInput, throttle);
-            BrakeInput = brake;
+            HandBrakeInput = brake;
             NitroInput = ShouldBoost();
 
             //Gizmos.color = Color.red;
