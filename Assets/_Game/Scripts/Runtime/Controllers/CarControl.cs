@@ -6,42 +6,41 @@ namespace RacingGame
     public class CarControl : TickableBehaviour
     {
         [Header("Car Properties")]
-        public float motorTorque = 2000f;
-        public float brakeTorque = 2000f;
-        public float maxSpeed = 20f;
-        public float steeringRange = 30f;
-        public float steeringRangeAtMaxSpeed = 10f;
-        public float centreOfGravityOffset = -1f;
+        [SerializeField] private float motorTorque = 2000f;
+        [SerializeField] private float brakeTorque = 2000f;
+        [SerializeField] private float maxSpeed = 20f;
+        [SerializeField] private float steeringRange = 30f;
+        [SerializeField] private float steeringRangeAtMaxSpeed = 10f;
+        [SerializeField] private float centreOfGravityOffset = -1f;
 
         private WheelControl[] wheels;
         private Rigidbody rigidBody;
 
-        private CarInputComponent CarInput; // Reference to the new input system
+        private CarInputComponent carInput;
 
         void Awake()
         {
-            CarInput = GetComponent<CarInputComponent>(); // Initialize Input Actions
+            carInput = GetComponent<CarInputComponent>();
+            rigidBody = GetComponent<Rigidbody>();
+            wheels = GetComponentsInChildren<WheelControl>();
         }
 
         // Start is called before the first frame update
         void Start()
         {
-            rigidBody = GetComponent<Rigidbody>();
-
             // Adjust center of mass to improve stability and prevent rolling
             Vector3 centerOfMass = rigidBody.centerOfMass;
             centerOfMass.y += centreOfGravityOffset;
             rigidBody.centerOfMass = centerOfMass;
 
             // Get all wheel components attached to the car
-            wheels = GetComponentsInChildren<WheelControl>();
         }
 
         // FixedUpdate is called at a fixed time interval
         public override void FixedTick()
         {
             // Read the Vector2 input from the new Input System
-            Vector2 inputVector = CarInput.CarInputs.MoveInput;
+            Vector2 inputVector = carInput.Inputs.MoveInput;
 
             // Get player input for acceleration and steering
             float vInput = inputVector.y; // Forward/backward input
@@ -84,6 +83,33 @@ namespace RacingGame
                 }
             }
         }
-    }
 
+        private void OnDrawGizmos()
+        {
+            // Visualize the center of mass in the editor
+            if (rigidBody != null)
+            {
+                Gizmos.color = Color.red;
+                Vector3 comPosition = transform.position + rigidBody.centerOfMass;
+                Gizmos.DrawSphere(comPosition, 0.1f);
+            }
+
+            // Visualize the input direction
+            if (carInput != null)
+            {
+                Vector2 inputVector = carInput.Inputs.MoveInput;
+                Gizmos.color = Color.green;
+                Vector3 inputDirection = transform.right * inputVector.x + transform.forward * inputVector.y;
+                Gizmos.DrawLine(transform.position, transform.position + inputDirection * 2f);
+            }
+
+            // Visualize the movement direction
+            if (rigidBody != null)
+            {
+                Gizmos.color = Color.blue;
+                Vector3 velocityDirection = rigidBody.linearVelocity.normalized;
+                Gizmos.DrawLine(transform.position, transform.position + velocityDirection * 2f);
+            }
+        }
+    }
 }

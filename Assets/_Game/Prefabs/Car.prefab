@@ -575,7 +575,7 @@ GameObject:
   - component: {fileID: 6556300916948461343}
   - component: {fileID: 8842448982863406061}
   m_Layer: 0
-  m_Name: Player_Car
+  m_Name: Car
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -663,11 +663,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RacingGame.CarInputComponent
   _carInputs:
-    rid: 279543578330660864
+    rid: 1274850097726488642
   references:
     version: 2
     RefIds:
-    - rid: 279543578330660864
+    - rid: 1274850097726488642
       type: {class: PlayerCarInputs, ns: RacingGame, asm: Assembly-CSharp}
       data: 
 --- !u!1 &4408540689925529881

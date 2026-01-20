@@ -7,6 +7,8 @@ namespace RacingGame
 {
     public class PCGManager : MonoBehaviour
     {
+        public static PCGManager Instance;
+
         // Track
         [Header("Track Settigns")] [SerializeField]
         private int scatterPointCount = 28;
@@ -55,6 +57,17 @@ namespace RacingGame
         // Finder
         private Transform _generatedWaypointsRoot;
         private Transform _generatedWallsRoot;
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+        }
 
         private void OnEnable()
         {
