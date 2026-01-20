@@ -426,12 +426,18 @@ namespace RacingGame
 
         private void SpawnWalls(List<Vector3> right, List<Vector3> left)
         {
+            if (right == null || left == null) return;
+            if (right.Count < 2 || left.Count < 2) return;
+            if (right.Count != left.Count) return;
+            
             float accR = 0f;
             float accL = 0f;
 
-            for (int i = 1; i < right.Count; i++)
+            for (int i = 0; i < right.Count; i++)
             {
-                float dR = Vector3.Distance(right[i - 1], right[i]);
+                int prev = (i - 1 + right.Count) % right.Count;
+                
+                float dR = Vector3.Distance(right[prev], right[i]);
                 accR += dR;
 
                 if (accR >= wallEveryMeters)
@@ -440,7 +446,7 @@ namespace RacingGame
                     SpawnWallAt(right[i], right, i, +1);
                 }
 
-                float dL = Vector3.Distance(left[i - 1], left[i]);
+                float dL = Vector3.Distance(left[prev], left[i]);
                 accL += dL;
 
                 if (accL >= wallEveryMeters)
@@ -460,8 +466,18 @@ namespace RacingGame
             // Offset from the road
             Vector3 up = transform.up;
             dir = Vector3.ProjectOnPlane(dir, up).normalized;
-            Vector3 outward = Vector3.Cross(dir, up).normalized * sideSign;
+            Vector3 outward = Vector3.Cross(up, dir).normalized * sideSign;
             Vector3 p = pos + outward * wallOffset;
+
+            // Push outwards
+            float halfWidth = roadWidth * 0.5f;
+            Vector3 center = Centerline[i];
+            float distToCenter = Vector3.Distance(p, center);
+
+            if (distToCenter < halfWidth + 0.1f)
+            {
+                p = pos - outward * wallOffset;
+            }
 
             var go = Instantiate(wallPrefab, p, Quaternion.LookRotation(dir, up), _generatedWallsRoot);
             go.name = $"Wall_{sideSign}_{i}";

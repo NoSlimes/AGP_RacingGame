@@ -4,7 +4,7 @@ namespace RacingGame
 {
 
     [RequireComponent(typeof(Rigidbody), typeof(CarInputComponent))]
-    public class CarControl : TickableBehaviour
+    public class CarControl : MonoBehaviour, ICarComponent
     {
         [Header("Car Properties")]
         [SerializeField] private float motorTorque = 2000f;
@@ -40,26 +40,19 @@ namespace RacingGame
         public float NitroDuration => nitroDuration;
         public float NitroCooldown => nitroCooldown;
 
-        void Awake()
+        public void Initialize(Car ownerCar) 
         {
-            carInput = GetComponent<CarInputComponent>();
-            rigidBody = GetComponent<Rigidbody>();
-            wheels = GetComponentsInChildren<WheelControl>();
-        }
+            carInput = ownerCar.GetCarComponent<CarInputComponent>();
+            rigidBody = ownerCar.Rigidbody;
+            wheels = ownerCar.GetCarComponents<WheelControl>();
 
-        // Start is called before the first frame update
-        void Start()
-        {
-            // Adjust center of mass to improve stability and prevent rolling
             Vector3 centerOfMass = rigidBody.centerOfMass;
             centerOfMass.y += centreOfGravityOffset;
             rigidBody.centerOfMass = centerOfMass;
-
-            // Get all wheel components attached to the car
         }
 
         // FixedUpdate is called at a fixed time interval
-        public override void FixedTick()
+        public void FixedTickComponent()
         {
             // Read the Vector2 input from the new Input System
             Vector2 inputVector = carInput.Inputs.MoveInput;
@@ -121,7 +114,7 @@ namespace RacingGame
                 wheel.WheelCollider.sidewaysFriction = sideways;
 
                 // Apply steering to wheels that support steering
-                if (wheel.steerable)
+                if (wheel.Steerable)
                 {
                     //wheel.WheelCollider.steerAngle = hInput * currentSteerRange; // without steering damping
                     // Added damping to steeriing
@@ -131,7 +124,7 @@ namespace RacingGame
                 if (isAccelerating)
                 {
                     // Apply torque to motorized wheels
-                    if (wheel.motorized)
+                    if (wheel.Motorized)
                     {
                         wheel.WheelCollider.motorTorque = vInput * currentMotorTorque;
                     }
