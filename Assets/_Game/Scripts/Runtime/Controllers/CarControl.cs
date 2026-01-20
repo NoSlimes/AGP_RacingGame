@@ -15,9 +15,9 @@ namespace RacingGame
         [SerializeField] private float centreOfGravityOffset = -1f;
 
         [Header("Nitro Configurations")]
-        public float nitroMultiplier; // How strong the nitro boos is
-        public float nitroDuration; // For how long is the boost going to last
-        public float nitroCooldown; // how long is the cooldown before we can boost again
+        [SerializeField] private float nitroMultiplier; // How strong the nitro boos is
+        [SerializeField] private float nitroDuration; // For how long is the boost going to last
+        [SerializeField] private float nitroCooldown; // how long is the cooldown before we can boost again
         private float nitroTimer;
 
         private WheelControl[] wheels;
