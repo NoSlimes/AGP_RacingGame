@@ -23,6 +23,15 @@ namespace RacingGame
         [SerializeField] private float postHullSmoothing = 0.15f;
         [SerializeField, Range(0f, 1f)] private float straightChance = 0.45f;
 
+        [Header("Elevation (3D Hills)")] [SerializeField]
+        private bool enableElevation = true;
+
+        [SerializeField] private float elevationAmplitude = 6f;
+        [SerializeField] private float elevationNoiseScale = 0.015f;
+        [SerializeField] private float maxSlopeDeg = 15f;
+        [SerializeField] private float elevationTurnLimitDeg = 20f;
+        [SerializeField] private int elevationSmoothIterations = 2;
+
         // Sampling
         [Header("Sampling")] [SerializeField] private float roadWidth = 8f;
         [SerializeField, Range(0, 1f)] private float bezierTension = 0.35f;
@@ -56,6 +65,8 @@ namespace RacingGame
         public List<Vector3> RightEdge { get; private set; } = new();
         public List<Vector3> LeftEdge { get; private set; } = new();
 
+        // Components
+        private MeshCollider _meshCollider;
         private MeshFilter _meshFilter;
         private MeshRenderer _meshRenderer;
 
@@ -101,6 +112,9 @@ namespace RacingGame
 
         private void EnsureComponents()
         {
+            if (!_meshCollider) _meshCollider = GetComponent<MeshCollider>();
+            if (!_meshCollider) _meshCollider = gameObject.AddComponent<MeshCollider>();
+
             if (!_meshFilter) _meshFilter = GetComponent<MeshFilter>();
             if (!_meshFilter) _meshFilter = gameObject.AddComponent<MeshFilter>();
 
@@ -127,6 +141,8 @@ namespace RacingGame
             float autoSmooth = Mathf.Clamp01(postHullSmoothing - (hullInsertJitter / 200f));
             cps = SmoothRing(cps, autoSmooth, 1);
             Centerline = SampleClosedBezierChain(cps, bezierTension, bezierSamplesPerCorner);
+            if (enableElevation)
+                ApplyElevation(Centerline, rng);
 
             // Build Road
             BuildEdges(Centerline, roadWidth * 0.5f, RightEdge, LeftEdge);
@@ -345,6 +361,96 @@ namespace RacingGame
             return pts;
         }
 
+
+        private void ApplyElevation(List<Vector3> center, System.Random rng)
+        {
+            if (center == null || center.Count < 4) return;
+
+            Vector3 up = transform.up;
+
+            // Build a distance parameter along the loop for stable noise sampling
+            int n = center.Count;
+            float[] dist = new float[n];
+            dist[0] = 0f;
+
+            for (int i = 1; i < n; i++)
+                dist[i] = dist[i - 1] + Vector3.Distance(center[i - 1], center[i]);
+
+            float loopLen = dist[n - 1] + Vector3.Distance(center[n - 1], center[0]);
+            float noiseOffset = (float)rng.NextDouble() * 1000f;
+
+            // 1) Target heights from noise (but reduce height in hard turns)
+            float[] h = new float[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                int prev = (i - 1 + n) % n;
+                int next = (i + 1) % n;
+
+                Vector3 a = Vector3.ProjectOnPlane(center[i] - center[prev], up);
+                Vector3 b = Vector3.ProjectOnPlane(center[next] - center[i], up);
+
+                float angle = 0f;
+                if (a.sqrMagnitude > 0.0001f && b.sqrMagnitude > 0.0001f)
+                    angle = Vector3.Angle(a, b);
+
+                // 0..1 where 1 = gentle, 0 = sharp
+                float gentle = Mathf.InverseLerp(elevationTurnLimitDeg, 0f, angle);
+                gentle = Mathf.Clamp01(gentle);
+
+                float t = (dist[i] / Mathf.Max(loopLen, 0.001f)); // 0..1 around loop
+                float noise = Mathf.PerlinNoise(noiseOffset + t * (1f / Mathf.Max(elevationNoiseScale, 0.0001f)),
+                    noiseOffset);
+
+                // Center noise around 0
+                float centered = (noise * 2f - 1f);
+
+                // Apply reduced elevation on sharp corners
+                h[i] = centered * elevationAmplitude * gentle;
+            }
+
+            // 2) Smooth heights (makes hills feel Mario-Kart-ish)
+            for (int it = 0; it < elevationSmoothIterations; it++)
+            {
+                float[] tmp = new float[n];
+                for (int i = 0; i < n; i++)
+                {
+                    int prev = (i - 1 + n) % n;
+                    int next = (i + 1) % n;
+                    tmp[i] = (h[prev] + h[i] + h[next]) / 3f;
+                }
+
+                h = tmp;
+            }
+
+            // 3) Clamp slope (prevents undrivable spikes)
+            float maxSlope = Mathf.Tan(maxSlopeDeg * Mathf.Deg2Rad);
+
+            // Forward pass
+            for (int i = 1; i < n; i++)
+            {
+                float seg = Vector3.Distance(center[i - 1], center[i]);
+                float maxDy = maxSlope * seg;
+                h[i] = Mathf.Clamp(h[i], h[i - 1] - maxDy, h[i - 1] + maxDy);
+            }
+
+            // Wrap clamp (last -> first)
+            {
+                float seg = Vector3.Distance(center[n - 1], center[0]);
+                float maxDy = maxSlope * seg;
+                h[0] = Mathf.Clamp(h[0], h[n - 1] - maxDy, h[n - 1] + maxDy);
+            }
+
+            // Apply heights to centerline
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 p = center[i];
+                // height along the generator's up axis
+                center[i] = p + up * h[i];
+            }
+        }
+
+
         private void BuildEdges(List<Vector3> center, float halfWidth, List<Vector3> right, List<Vector3> left)
         {
             right.Clear();
@@ -357,11 +463,12 @@ namespace RacingGame
                 Vector3 next = center[(i + 1) % center.Count];
 
                 Vector3 up = transform.up;
-                Vector3 tangent = Vector3.ProjectOnPlane((next - prev), up).normalized;
-                Vector3 normal = Vector3.Cross(up, tangent).normalized;
+                Vector3 forward = (next - prev).normalized;
+                Vector3 rightDir = Vector3.Cross(up, forward).normalized;
+                Vector3 sideways = rightDir;
 
-                right.Add(cur + normal * halfWidth);
-                left.Add(cur - normal * halfWidth);
+                right.Add(cur + sideways * halfWidth);
+                left.Add(cur - sideways * halfWidth);
             }
         }
 
@@ -422,6 +529,8 @@ namespace RacingGame
             mesh.RecalculateBounds();
 
             _meshFilter.sharedMesh = mesh;
+            _meshCollider.sharedMesh = null;
+            _meshCollider.sharedMesh = mesh;
         }
 
         private void SpawnWalls(List<Vector3> right, List<Vector3> left)
@@ -429,14 +538,14 @@ namespace RacingGame
             if (right == null || left == null) return;
             if (right.Count < 2 || left.Count < 2) return;
             if (right.Count != left.Count) return;
-            
+
             float accR = 0f;
             float accL = 0f;
 
             for (int i = 0; i < right.Count; i++)
             {
                 int prev = (i - 1 + right.Count) % right.Count;
-                
+
                 float dR = Vector3.Distance(right[prev], right[i]);
                 accR += dR;
 
