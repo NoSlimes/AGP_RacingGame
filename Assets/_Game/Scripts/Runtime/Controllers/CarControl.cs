@@ -20,6 +20,10 @@ namespace RacingGame
         [SerializeField] private float nitroCooldown; // how long is the cooldown before we can boost again
         private float nitroTimer;
 
+        [Header("Effects")]
+        public TrailRenderer[] TireMarks;
+        private bool tireMarkFlag;
+
         private WheelControl[] wheels;
         private Rigidbody rigidBody;
 
@@ -110,18 +114,18 @@ namespace RacingGame
             }
 
             foreach (var wheel in wheels)
-            {
+            {             
+                // Apply Speed based traction
+                WheelFrictionCurve sideways = wheel.WheelCollider.sidewaysFriction;
+                sideways.stiffness = Mathf.Lerp(2.0f, 0.9f, speedFactor);
+                wheel.WheelCollider.sidewaysFriction = sideways;
+
                 // Apply steering to wheels that support steering
                 if (wheel.steerable)
                 {
-                    wheel.WheelCollider.steerAngle = hInput * currentSteerRange;
-                }
-
-                // Apply breaking
-                if (brakeInput)
-                {
-                    wheel.WheelCollider.brakeTorque = brakeTorque;
-                    continue;
+                    //wheel.WheelCollider.steerAngle = hInput * currentSteerRange; // without steering damping
+                    // Added damping to steeriing
+                    wheel.WheelCollider.steerAngle = Mathf.Lerp(wheel.WheelCollider.steerAngle, hInput * currentSteerRange, Time.fixedDeltaTime * 6f);
                 }
 
                 if (isAccelerating)
@@ -140,6 +144,16 @@ namespace RacingGame
                     wheel.WheelCollider.motorTorque = 0f;
                     wheel.WheelCollider.brakeTorque = Mathf.Abs(vInput) * brakeTorque;
                 }
+
+                // Apply breaking
+                if (brakeInput)
+                {
+                    wheel.WheelCollider.brakeTorque = brakeTorque;
+                    // TODO: add trail mark effect when braking
+                    StartEmmiter();
+                    continue;
+                }
+                else StopEmmiter();
             }
 
             // Hard speed clamp
@@ -150,6 +164,15 @@ namespace RacingGame
                 rigidBody.linearVelocity =
                     flatVelocity.normalized * maxSpeed +
                     Vector3.Project(rigidBody.linearVelocity, transform.up);
+            }
+
+            // Engine Drag
+            if (Mathf.Abs(vInput) < 0.1f && !brakeInput)
+            {
+                rigidBody.AddForce(
+                    -transform.forward * forwardSpeed * 0.5f,
+                    ForceMode.Acceleration
+                );
             }
         }
 
@@ -194,6 +217,28 @@ namespace RacingGame
         public void ResetNitroCooldown()
         {
             nitroOnCooldown = false;
+        }
+
+        private void StartEmmiter()
+        {
+            if (tireMarkFlag) return;
+            foreach(TrailRenderer T in TireMarks)
+            {
+                T.emitting = true;
+            }
+
+            tireMarkFlag = true;
+        }
+
+        private void StopEmmiter()
+        {
+            if (!tireMarkFlag) return;
+            foreach (TrailRenderer T in TireMarks)
+            {
+                T.emitting = false;
+            }
+
+            tireMarkFlag = false;
         }
     }
 }
