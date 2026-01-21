@@ -12,6 +12,9 @@ namespace RacingGame
         [SerializeField, Range(0f, 5f)] private float maxPitch = 2.5f;
         [SerializeField, Range(0f, 1f)] private float minVolume = 0.4f;
         [SerializeField, Range(0f, 1f)] private float maxVolume = 1.0f;
+        [SerializeField] private float pitchSmoothSpeed = 10f;
+        [SerializeField] private float volumeSmoothSpeed = 5f;
+        [SerializeField] private float rpmFlutuation = 0.05f;
 
         [Header("Audio: Tire Slipping")]
         [SerializeField] private AudioSource slipAudioSource;
@@ -31,6 +34,9 @@ namespace RacingGame
         private SkidTrail[] skidTrails;
 
         private Dictionary<WheelControl, ParticleSystem> skidParticles = new();
+
+        private float currentRPM;
+        private float engineLoad;
 
         public int Priority => 100;
 
@@ -90,7 +96,7 @@ namespace RacingGame
         {
             foreach (var skidTrail in skidTrails)
             {
-                Destroy(skidTrail);
+                if (skidTrail != null) Destroy(skidTrail.gameObject);
             }
         }
 
@@ -101,74 +107,126 @@ namespace RacingGame
 
         public void FixedTickComponent()
         {
-            float maxSlip = 0f;
+            float maxSlipForAudio = 0f;
 
             for (int i = 0; i < wheelControllers.Length; i++)
             {
                 WheelControl control = wheelControllers[i];
 
-                if (control.IsFront)
-                    continue;
-
+                // Usually we only show trails for rear wheels, but we need slip data from all
+                // for the audio to sound correct.
                 WheelCollider col = wheelColliders[i];
                 SkidTrail trail = skidTrails[i];
-
-                if (skidParticles.TryGetValue(control, out ParticleSystem ps)) { }
 
                 if (!col.GetGroundHit(out WheelHit hit))
                 {
                     trail.EndTrail();
+                    if (skidParticles.TryGetValue(control, out ParticleSystem psOff)) psOff.Stop();
                     continue;
                 }
 
-                float slip = Mathf.Max(Mathf.Abs(hit.forwardSlip), Mathf.Abs(hit.sidewaysSlip));
-                if (slip > maxSlip) maxSlip = slip;
+                // --- GRASS DETECTION ---
+                bool isOnGrass = (hit.collider.sharedMaterial != null && hit.collider.sharedMaterial.name.Contains("Grass"))
+                                 || hit.collider.name.Contains("Grass");
 
-                if (slip > skidSlipThreshold)
+                // On grass, the reported slip values are much lower because friction is lower.
+                // We scale the threshold and the reported slip to compensate.
+                float effectiveThreshold = isOnGrass ? (skidSlipThreshold * 0.25f) : skidSlipThreshold;
+                float slip = Mathf.Max(Mathf.Abs(hit.forwardSlip), Mathf.Abs(hit.sidewaysSlip));
+
+                // Update max slip for audio (we normalize grass slip so it's audible)
+                float audioSlip = isOnGrass ? (slip * 4f) : slip;
+                if (audioSlip > maxSlipForAudio) maxSlipForAudio = audioSlip;
+
+                if (control.IsFront) continue; 
+
+                if (slip > effectiveThreshold)
                 {
-                    float intensity = Mathf.InverseLerp(skidSlipThreshold, 1.2f, slip);
+                    // Calculate intensity based on the effective threshold
+                    float intensity = Mathf.InverseLerp(effectiveThreshold, effectiveThreshold * 3f, slip);
                     trail.AddPoint(hit.point + hit.normal * 0.02f, hit.normal, intensity);
 
-                    if (ps)
+                    if (skidParticles.TryGetValue(control, out ParticleSystem psOn))
                     {
-                        ps.Play();
+                        if (!psOn.isPlaying) psOn.Play();
                     }
                 }
                 else
                 {
                     trail.EndTrail();
-
-                    if (ps)
+                    if (skidParticles.TryGetValue(control, out ParticleSystem psOff))
                     {
-                        ps.Stop();
+                        if (psOff.isPlaying) psOff.Stop();
                     }
                 }
             }
 
-            UpdateSlipSound(maxSlip);
+            UpdateSlipSound(maxSlipForAudio);
         }
 
         private void UpdateEngineSound()
         {
             if (engineAudioSource == null || carControl == null) return;
 
-            float speedRatio = rb.linearVelocity.magnitude / carControl.MaxSpeed;
-            float gearValue = (speedRatio * 5f) % 1f;
-            float targetPitch = Mathf.Lerp(minPitch, maxPitch, gearValue);
+            // 1. Get Forward Speed (ignores vertical falling speed)
+            float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
+            float speedRatio = Mathf.Clamp01(Mathf.Abs(forwardSpeed) / carControl.MaxSpeed);
 
-            if (carInput.Inputs.MoveInput.y > 0.1f) targetPitch += 0.1f;
-            if (carInput.Inputs.NitroInput) targetPitch += 0.4f;
+            // 2. Determine Grounded State
+            bool isGrounded = false;
+            for (int i = 0; i < wheelColliders.Length; i++)
+            {
+                if (wheelColliders[i].isGrounded) { isGrounded = true; break; }
+            }
 
-            engineAudioSource.pitch = Mathf.Lerp(engineAudioSource.pitch, targetPitch, Time.deltaTime * 5f);
+            // 3. Calculate Engine Load (How hard is the engine working?)
+            // If we are in the air, load is just throttle. 
+            // If on ground, load is throttle + a bit of speed resistance.
+            float throttle = Mathf.Abs(carInput.Inputs.MoveInput.y);
+            float targetLoad = isGrounded ? throttle : throttle * 0.5f;
+            engineLoad = Mathf.Lerp(engineLoad, targetLoad, Time.deltaTime * 3f);
 
-            float targetVol = carInput.Inputs.MoveInput.y > 0.1f ? maxVolume : minVolume;
-            engineAudioSource.volume = Mathf.Lerp(engineAudioSource.volume, targetVol, Time.deltaTime * 3f);
+            // 4. Calculate RPM (Pitch)
+            float targetRPM = 0f;
+
+            if (isGrounded)
+            {
+                // PITCH follows Gears when on ground (even if rolling)
+                float gearCount = 5f;
+                float gearSector = 1f / gearCount;
+                float gearRelativeSpeed = (speedRatio % gearSector) / gearSector;
+
+                // Base RPM from wheels + extra RPM from throttle "strain"
+                targetRPM = Mathf.Lerp(0.2f, 0.9f, gearRelativeSpeed) + (throttle * 0.1f);
+            }
+            else
+            {
+                // PITCH follows throttle only when in air (Revving)
+                // This prevents "insane" engine sounds when falling
+                targetRPM = Mathf.Lerp(0.1f, 0.7f, throttle);
+            }
+
+            if (carInput.Inputs.NitroInput) targetRPM += 0.2f;
+            currentRPM = Mathf.Lerp(currentRPM, targetRPM, Time.deltaTime * 10f);
+
+            // 5. Apply Pitch
+            engineAudioSource.pitch = Mathf.Lerp(minPitch, maxPitch, currentRPM);
+
+            // 6. Apply Volume (The "Rolling" Fix)
+            // We want the engine to be audible when rolling, but much quieter than when accelerating.
+            // minVolume = Idle/Rolling volume
+            // maxVolume = Full throttle volume
+            float gearVolumeFactor = isGrounded ? (speedRatio * 0.2f) : 0f; // slight volume increase with speed
+            float loadVolume = engineLoad * (maxVolume - minVolume);
+
+            engineAudioSource.volume = minVolume + loadVolume + gearVolumeFactor;
         }
 
         private void UpdateSlipSound(float slip)
         {
             if (slipAudioSource == null) return;
 
+            // slip is now pre-normalized for grass in FixedTickComponent
             float targetVolume = Mathf.InverseLerp(slipStart, slipFull, slip);
             targetVolume = Mathf.Clamp01(targetVolume);
 

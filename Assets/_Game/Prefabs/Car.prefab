@@ -667,13 +667,11 @@ MonoBehaviour:
   maxSpeed: 40
   steeringRange: 30
   steeringRangeAtMaxSpeed: 10
-  centreOfGravityOffset: -0.1
+  antiRollStiffness: 5000
+  downforce: 100
   nitroMultiplier: 2
   nitroDuration: 0.2
   nitroCooldown: 2
-  antiRollStiffness: 5000
-  downforce: 100
-  currentSurface: Asphalt
 --- !u!114 &8842448982863406061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -716,7 +714,7 @@ MonoBehaviour:
   slipFull: 1
   slipAudioVolume: 0.25
   skidTrailPrefab: {fileID: 707103282903700802, guid: dabda883eb3cfef4ea6aa5c82fed5b84, type: 3}
-  skidSlipThreshold: 0.75
+  skidSlipThreshold: 0.5
 --- !u!114 &5294426131317776313
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -732,7 +730,6 @@ MonoBehaviour:
   upsideDownDotThreshold: 0.7
   timeBeforeReset: 3
   upwardImpulse: 5
-  velociityDamping: 0.5
 --- !u!114 &4456176329557439927
 MonoBehaviour:
   m_ObjectHideFlags: 0

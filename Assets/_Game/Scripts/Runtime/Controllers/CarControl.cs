@@ -12,7 +12,8 @@ namespace RacingGame
         [SerializeField] private float maxSpeed = 20f;
         [SerializeField] private float steeringRange = 30f;
         [SerializeField] private float steeringRangeAtMaxSpeed = 10f;
-        //[SerializeField] private float centreOfGravityOffset = -1f;
+        [SerializeField] private float antiRollStiffness = 5000f;
+        [SerializeField] private float downforce = 50f;
 
         [Header("Nitro Configurations")]
         [SerializeField] private float nitroMultiplier; // How strong the nitro boost is
@@ -47,13 +48,6 @@ namespace RacingGame
 
             frontWheels = wheels.Where(w => w.IsFront).ToArray();
             rearWheels = wheels.Where(w => !w.IsFront).ToArray();
-
-            // ---------------------------------
-            // This really messed with the center of mass. This is what caused the extreme spin outs.
-            // ---------------------------------
-            //Vector3 centerOfMass = rigidBody.centerOfMass;
-            //centerOfMass.y += centreOfGravityOffset;
-            //rigidBody.centerOfMass = centerOfMass;
         }
 
         // FixedUpdate is called at a fixed time interval
@@ -67,8 +61,8 @@ namespace RacingGame
             bool handBrakeInput = carInput.Inputs.HandBrakeInput;
 
             // Get player input for acceleration and steering
-            float vInput = inputVector.y; // Forward/backward input
-            float hInput = inputVector.x; // Steering input
+            float accInput = inputVector.y; 
+            float steerInput = inputVector.x; 
 
             // Calculate current speed along the car's forward axis
             float forwardSpeed = Vector3.Dot(transform.forward, rigidBody.linearVelocity);
@@ -83,7 +77,7 @@ namespace RacingGame
             float currentSteerRange = Mathf.Lerp(steeringRange, steeringRangeAtMaxSpeed, speedFactor);
 
             // Determine if the player is accelerating or trying to reverse
-            bool isAccelerating = !handBrakeInput && Mathf.Sign(vInput) == Mathf.Sign(forwardSpeed);
+            bool isAccelerating = !handBrakeInput && Mathf.Sign(accInput) == Mathf.Sign(forwardSpeed);
 
             // Decrease the nitro timer if we are curently using nitro boost
             if (nitroActive)
@@ -117,19 +111,51 @@ namespace RacingGame
                 );
             }
 
+
+            rigidBody.AddForce(-transform.up * downforce * rigidBody.linearVelocity.magnitude);
+
+            ApplyAntiRoll(frontWheels);
+            ApplyAntiRoll(rearWheels);
+
+            int wheelsOnGrass = 0;
             foreach (WheelControl wheel in wheels)
             {
-                // Apply Speed based traction
-                WheelFrictionCurve sideways = wheel.WheelCollider.sidewaysFriction;
-                sideways.stiffness = Mathf.Lerp(2.0f, 0.9f, speedFactor);
-                wheel.WheelCollider.sidewaysFriction = sideways;
+                float surfaceGrip = 1f;
+                float surfacePower = 1f;
+
+                if (wheel.WheelCollider.GetGroundHit(out var hit))
+                {
+                    if (hit.collider.sharedMaterial != null && hit.collider.sharedMaterial.name.Contains("Grass"))
+                    {
+                        surfaceGrip = 0.3f;
+                        surfacePower = 0.4f;
+                        wheelsOnGrass++;
+                    }
+                }
+
+                float targetStiffness = 2.0f * surfaceGrip;
+                if (!Mathf.Approximately(wheel.WheelCollider.sidewaysFriction.stiffness, targetStiffness))
+                {
+                    WheelFrictionCurve sFric = wheel.WheelCollider.sidewaysFriction;
+                    sFric.stiffness = targetStiffness;
+                    wheel.WheelCollider.sidewaysFriction = sFric;
+
+                    WheelFrictionCurve fFric = wheel.WheelCollider.forwardFriction;
+                    fFric.stiffness = targetStiffness;
+                    wheel.WheelCollider.forwardFriction = fFric;
+                }
 
                 // Apply steering to wheels that support steering
                 if (wheel.Steerable)
                 {
                     //wheel.WheelCollider.steerAngle = hInput * currentSteerRange; // without steering damping
                     // Added damping to steeriing
-                    wheel.WheelCollider.steerAngle = Mathf.Lerp(wheel.WheelCollider.steerAngle, hInput * currentSteerRange, Time.fixedDeltaTime * 6f);
+                    float targetAngle = steerInput * currentSteerRange;
+                    wheel.WheelCollider.steerAngle = Mathf.MoveTowards(
+                        wheel.WheelCollider.steerAngle,
+                        targetAngle,
+                        120f * Time.fixedDeltaTime
+                    );
                 }
 
                 if (isAccelerating)
@@ -137,7 +163,7 @@ namespace RacingGame
                     // Apply torque to motorized wheels
                     if (wheel.Motorized)
                     {
-                        wheel.WheelCollider.motorTorque = vInput * currentMotorTorque;
+                        wheel.WheelCollider.motorTorque = accInput * currentMotorTorque * surfacePower;
                     }
                     // Release brakes when accelerating
                     wheel.WheelCollider.brakeTorque = 0f;
@@ -146,10 +172,8 @@ namespace RacingGame
                 {
                     // Apply brakes when reversing direction
                     wheel.WheelCollider.motorTorque = 0f;
-                    wheel.WheelCollider.brakeTorque = Mathf.Abs(vInput) * brakeTorque;
+                    wheel.WheelCollider.brakeTorque = Mathf.Abs(accInput) * brakeTorque;
                 }
-
-
             }
 
             // Apply breaking
@@ -159,18 +183,23 @@ namespace RacingGame
                     wheel.WheelCollider.brakeTorque = brakeTorque;
             }
 
-            // Hard speed clamp
-            Vector3 flatVelocity = Vector3.ProjectOnPlane(rigidBody.linearVelocity, transform.up);
-
-            if (!nitroActive && flatVelocity.magnitude > maxSpeed)
+            // Speed limiting 
+            float excessSpeed = Mathf.Abs(forwardSpeed) - effectiveMaxSpeed;
+            if (excessSpeed > 0)
             {
-                rigidBody.linearVelocity =
-                    (flatVelocity.normalized * maxSpeed) +
-                    Vector3.Project(rigidBody.linearVelocity, transform.up);
+                // Applies a strong backwards force to match air resistance at high speeds
+                rigidBody.AddForce(-transform.forward * excessSpeed * 500f);
+            }
+
+            // Apply additional resistance if any wheels are on grass
+            if (wheelsOnGrass > 0)
+            {
+                float grassDrag = (wheelsOnGrass / (float)wheels.Length) * forwardSpeed * 200f;
+                rigidBody.AddForce(-transform.forward * grassDrag);
             }
 
             // Engine Drag
-            if (Mathf.Abs(vInput) < 0.1f && !handBrakeInput)
+            if (Mathf.Abs(accInput) < 0.1f && !handBrakeInput)
             {
                 rigidBody.AddForce(
                     -transform.forward * forwardSpeed * 0.5f,
@@ -179,14 +208,42 @@ namespace RacingGame
             }
         }
 
+        private void ApplyAntiRoll(WheelControl[] wheelPair)
+        {
+            if (wheelPair.Length < 2)
+                return;
+
+            WheelHit hit;
+            float travelL = 1.0f;
+            float travelR = 1.0f;
+
+            if (wheelPair[0].WheelCollider.GetGroundHit(out hit))
+                travelL = (-wheelPair[0].transform.InverseTransformPoint(hit.point).y
+                    - wheelPair[0].WheelCollider.radius)
+                    / wheelPair[0].WheelCollider.suspensionDistance;
+
+            if (wheelPair[1].WheelCollider.GetGroundHit(out hit))
+                travelR = (-wheelPair[1].transform.InverseTransformPoint(hit.point).y
+                    - wheelPair[1].WheelCollider.radius)
+                    / wheelPair[1].WheelCollider.suspensionDistance;
+
+            float antiRollForce = (travelL - travelR) * antiRollStiffness;
+
+            if (wheelPair[0].WheelCollider.isGrounded)
+                rigidBody.AddForceAtPosition(wheelPair[0].transform.up * -antiRollForce, wheelPair[0].transform.position);
+
+            if (wheelPair[1].WheelCollider.isGrounded)
+                rigidBody.AddForceAtPosition(wheelPair[1].transform.up * antiRollForce, wheelPair[1].transform.position);
+        }
+
         private void OnDrawGizmos()
         {
             // Visualize the center of mass in the editor
             if (TryGetComponent<Rigidbody>(out Rigidbody rb))
             {
                 Gizmos.color = Color.green;
-                Vector3 comPosition = transform.position + rb.centerOfMass;
-                Gizmos.DrawSphere(comPosition, 0.1f);
+                Vector3 comPosition = transform.TransformPoint(rb.centerOfMass);
+                Gizmos.DrawSphere(comPosition, 0.15f);
             }
 
             // Visualize the input direction

@@ -261,7 +261,7 @@ namespace RacingGame._Game.Scripts.PCG
                 _mc_Grass.sharedMesh = null;
                 _mc_Grass.sharedMesh = grassMesh;
 
-                _mc_Grass.material = grassPhysicsMaterial;
+                //_mc_Grass.material = grassPhysicsMaterial;
             }
             else
             {

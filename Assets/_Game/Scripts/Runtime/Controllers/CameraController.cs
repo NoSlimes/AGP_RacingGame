@@ -14,20 +14,25 @@ namespace RacingGame
         [SerializeField] private float minFOV = 60f;
         [SerializeField] private float maxFOV = 80f;
         [SerializeField] private float fovSpeedThreshold = 30f;
+        [SerializeField] private float fovTargetSmoothSpeed = 6f;
 
-        [Header("Nitro Camera Shake")]
-        [SerializeField] private float nitroShakeStrength = 0.08f;
-        [SerializeField] private float nitroShakeSpeed = 25f;
+        [Header("Nitro Camera FOV THING")]
+        [SerializeField] private float nitroMaxFOVMultiplier = 1.25f;
 
         private Transform followTarget;
+        private CarControl followCarC;
+
         private Rigidbody targetRigidbody;
         private Camera cam;
 
         private Vector3 currentVelocity = Vector3.zero;
 
+        private float targetFOV;
+
         private void Awake()
         {
             cam = GetComponentInChildren<Camera>();
+            targetFOV = cam.fieldOfView;
         }
 
         private void OnEnable()
@@ -52,6 +57,8 @@ namespace RacingGame
         private void SetFollowTarget(Car car)
         {
             SetFollowTarget(car.transform);
+
+            followCarC = car.GetCarComponent<CarControl>();
         }
 
         public void SetFollowTarget(Transform target)
@@ -79,14 +86,6 @@ namespace RacingGame
                 ref currentVelocity,
                 positionSmoothTime
             );
-
-            bool nitro = followTarget.GetComponent<CarControl>().NitroActive;
-
-            if (nitro)
-            {
-                Vector3 shake = transform.right * Mathf.Sin(Time.time * nitroShakeSpeed) * nitroShakeStrength;
-                transform.position += shake;
-            }
         }
 
         private void HandleRotation()
@@ -104,13 +103,22 @@ namespace RacingGame
 
         private void HandleFOV()
         {
-            if (targetRigidbody == null) return;
+            float desiredFOV = minFOV;
 
-            // Increase FOV based on speed
-            float speed = targetRigidbody.linearVelocity.magnitude;
-            float targetFOV = Mathf.Lerp(minFOV, maxFOV, speed / fovSpeedThreshold);
+            if (targetRigidbody != null)
+            {
+                float speed = targetRigidbody.linearVelocity.magnitude;
+                desiredFOV = Mathf.Lerp(minFOV, maxFOV, speed / fovSpeedThreshold);
+            }
 
-            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, targetFOV, Time.deltaTime * 2f);
+            if (followCarC && followCarC.NitroActive)
+                    desiredFOV = maxFOV * nitroMaxFOVMultiplier;
+
+            // targetFOV moves toward equilibrium
+            targetFOV = Mathf.Lerp(targetFOV, desiredFOV, Time.deltaTime * fovTargetSmoothSpeed);
+
+            // camera follows targetFOV
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, targetFOV, Time.deltaTime * 8f);
         }
     }
 }

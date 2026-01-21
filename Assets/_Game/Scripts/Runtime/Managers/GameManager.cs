@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace RacingGame
 {
-    [DefaultExecutionOrder(-100)]
+    [DefaultExecutionOrder(-9)]
     public partial class GameManager : MonoBehaviour
     {
         private static readonly DLogCategory logCategory = new("GameManager", Color.green);
@@ -150,13 +150,13 @@ namespace RacingGame
 
         private void OnEnable()
         {
-            InputManager.Instance.RegisterActionCallback("Cancel", OnPausePressed, InputManager.InputEventType.Performed);
+            InputManager.Instance.RegisterActionCallback("Pause", OnPausePressed, InputManager.InputEventType.Performed);
         }
 
         private void OnDisable()
         {
             if (InputManager.Instance)
-                InputManager.Instance.UnregisterActionCallback("Cancel", OnPausePressed, InputManager.InputEventType.Performed);
+                InputManager.Instance.UnregisterActionCallback("Pause", OnPausePressed, InputManager.InputEventType.Performed);
         }
 
         private void OnPausePressed(UnityEngine.InputSystem.InputAction.CallbackContext context)

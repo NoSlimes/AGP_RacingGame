@@ -84,44 +84,44 @@ namespace RacingGame
                 var center = waypointBuilder.Centerline;
                 var left = waypointBuilder.LeftEdge;
                 var right = waypointBuilder.RightEdge;
+                int totalWaypoints = center.Count;
 
-                float distanceBetweenPoints = Vector3.Distance(center[0], center[1]);
-                if (distanceBetweenPoints < 0.001f) distanceBetweenPoints = 0.1f; 
+                float distanceBetweenPoints = Vector3.Distance(center[^1], center[^2]);
+                if (distanceBetweenPoints < 0.001f) distanceBetweenPoints = 0.1f;
 
                 Bounds carBounds = carPrefab.transform.GetObjectBounds();
                 float carLength = carBounds.size.z;
-
-                float metersPerRow = carLength * 3.0f;
-
-                int indicesPerRow = Mathf.CeilToInt(metersPerRow / distanceBetweenPoints);
+                float metersPerRow = carLength * 2.5f;
+                int indicesPerRow = Mathf.Max(1, Mathf.CeilToInt(metersPerRow / distanceBetweenPoints));
 
                 int row = index / 2;
                 bool isLeftLane = index % 2 == 0;
 
-                int startOffset = 10;
-                int targetIndex = startOffset + (row * indicesPerRow);
+                int backOffset = 1 + (row * indicesPerRow);
+                backOffset = Mathf.Clamp(backOffset, 1, totalWaypoints - 1);
 
-                targetIndex = Mathf.Clamp(targetIndex, 0, center.Count - 1);
-                int nextIndex = Mathf.Clamp(targetIndex + 1, 0, center.Count - 1);
+                Vector3 centerPt = center[^backOffset];
+                Vector3 leftPt = left[^backOffset];
+                Vector3 rightPt = right[^backOffset];
 
-                Vector3 centerPt = center[targetIndex];
-                Vector3 leftPt = left[targetIndex];
-                Vector3 rightPt = right[targetIndex];
-
-                Vector3 forward = (center[nextIndex] - centerPt).normalized;
-                if (forward == Vector3.zero) forward = carPrefab.transform.forward;
-
-                Vector3 spawnPoint;
-                if (isLeftLane)
+                Vector3 forward;
+                if (backOffset > 1)
                 {
-                    spawnPoint = Vector3.Lerp(centerPt, leftPt, 0.5f);
+                    forward = (center[^(backOffset - 1)] - centerPt).normalized;
                 }
                 else
                 {
-                    spawnPoint = Vector3.Lerp(centerPt, rightPt, 0.5f);
+                    forward = (centerPt - center[^(backOffset + 1)]).normalized;
                 }
 
-                spawnPoint += Vector3.up * 1.0f;
+                if (forward == Vector3.zero) forward = carPrefab.transform.forward;
+
+                Vector3 spawnPoint = isLeftLane
+                    ? Vector3.Lerp(centerPt, leftPt, 0.5f)
+                    : Vector3.Lerp(centerPt, rightPt, 0.5f);
+
+                // Slight lift to prevent physics glitches with the track floor
+                spawnPoint += Vector3.up * 0.1f;
 
                 return (spawnPoint, forward);
             }
