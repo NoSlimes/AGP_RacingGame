@@ -1,6 +1,7 @@
 using NoSlimes.Logging;
 using NoSlimes.UnityUtils.Input;
 using NoSlimes.Util.UniTerminal;
+using RacingGame._Game.Scripts.PCG;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -59,7 +60,9 @@ namespace RacingGame
 
         private void Start()
         {
-            carSpawner = new(PCGManager.Instance, carPrefab, carCount);
+            var waypointBuilder = FindFirstObjectByType<TrackWaypointBuilder>();
+
+            carSpawner = new(waypointBuilder, carPrefab, carCount);
             carSpawner.OnCarsSpawned += () => OnPlayerCarAssigned?.Invoke(GetPlayerCar());
 
             if (autoSpawn)
