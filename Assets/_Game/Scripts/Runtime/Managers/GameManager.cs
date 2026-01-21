@@ -126,6 +126,24 @@ namespace RacingGame
             for (int i = 0; i < tickables.Count; i++) tickables[i].FixedTick();
         }
 
+#if DEBUG
+        private void OnDrawGizmos()
+        {
+            foreach (var tickable in tickables)
+            {
+                tickable.DrawDebug();
+            }
+
+            foreach (var spawnPoint in carSpawner?.SpawnPositions ?? Array.Empty<(Vector3, Vector3)>())
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawSphere(spawnPoint.spawnPoint, 0.5f);
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawLine(spawnPoint.spawnPoint, spawnPoint.spawnPoint + spawnPoint.trackForward * 2.0f);
+            }
+        }
+#endif
+
         private void Update() => StateMachine.Update();
         private void LateUpdate() => StateMachine.LateUpdate();
         private void FixedUpdate() => StateMachine.FixedUpdate();

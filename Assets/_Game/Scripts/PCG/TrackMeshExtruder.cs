@@ -32,6 +32,7 @@ namespace RacingGame._Game.Scripts.PCG
         [Min(0.01f)] public float grassWidth = 4f;
         public float grassYOffset = 0.01f;
         [SerializeField] private Material grassMaterial;
+        public PhysicsMaterial grassPhysicsMaterial;
 
         [Header("Collider")]
         public bool addMeshCollider = true;
@@ -41,6 +42,7 @@ namespace RacingGame._Game.Scripts.PCG
 
         MeshFilter _mf;
         MeshCollider _mc;
+        MeshCollider _mc_Grass;
         MeshRenderer _mr;
 
         void Reset()
@@ -54,7 +56,27 @@ namespace RacingGame._Game.Scripts.PCG
         {
             _mf = GetComponent<MeshFilter>();
             _mr = GetComponent<MeshRenderer>();
-            if (addMeshCollider) _mc = GetComponent<MeshCollider>();
+            
+            if (addMeshCollider)
+            {
+                var colliders = GetComponents<MeshCollider>();
+
+                if (colliders.Length == 0)
+                {
+                    _mc = gameObject.AddComponent<MeshCollider>();
+                    _mc_Grass = gameObject.AddComponent<MeshCollider>();
+                }
+                else if (colliders.Length == 1)
+                {
+                    _mc = colliders[0];
+                    _mc_Grass = gameObject.AddComponent<MeshCollider>();
+                }
+                else if (colliders.Length >= 2)
+                {
+                    _mc = colliders[0];
+                    _mc_Grass = colliders[1];
+                }
+            }
             if (!splineContainer) splineContainer = GetComponent<SplineContainer>();
             Build();
         }
@@ -74,6 +96,7 @@ namespace RacingGame._Game.Scripts.PCG
             if (!_mf) _mf = GetComponent<MeshFilter>();
             if (!_mr) _mr = GetComponent<MeshRenderer>();
             if (addMeshCollider && !_mc) _mc = GetComponent<MeshCollider>();
+            if (addMeshCollider && !_mc_Grass) _mc_Grass = GetComponent<MeshCollider>();
             if (!splineContainer) splineContainer = GetComponent<SplineContainer>();
 
             if (!splineContainer || splineContainer.Splines.Count == 0)
@@ -221,6 +244,29 @@ namespace RacingGame._Game.Scripts.PCG
             mesh.RecalculateBounds();
 
             _mf.sharedMesh = mesh;
+
+            if (generateGrass && _mc_Grass != null)
+            {
+                // Create collision mesh
+                var grassMesh = new Mesh();
+                grassMesh.name = "GrassColliderMesh";
+                grassMesh.SetVertices(verts);
+
+                // Grass tri indices into verts
+                grassMesh.SetTriangles(grassTris, 0);
+
+                grassMesh.RecalculateNormals();
+                grassMesh.RecalculateBounds();
+
+                _mc_Grass.sharedMesh = null;
+                _mc_Grass.sharedMesh = grassMesh;
+
+                _mc_Grass.material = grassPhysicsMaterial;
+            }
+            else
+            {
+                if (_mc_Grass != null) _mc_Grass.sharedMesh = null;
+            }
             
             ApplyMaterialsToRenderer();
 

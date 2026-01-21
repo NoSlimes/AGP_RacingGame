@@ -7,5 +7,14 @@ namespace RacingGame
         public void Tick() { }
         public void LateTick() { }
         public void FixedTick() { }
+
+#if DEBUG
+
+        /// <summary>
+        /// Runs in DrawGizmos to draw debug information.
+        /// Surround with #DEBUG
+        /// </summary>
+        public void DrawDebug() { }
+#endif
     }
 }
