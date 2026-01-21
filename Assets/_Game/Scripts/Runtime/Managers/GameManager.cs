@@ -64,7 +64,16 @@ namespace RacingGame
             var waypointBuilder = FindFirstObjectByType<TrackWaypointBuilder>();
 
             carSpawner = new(waypointBuilder, carPrefab, carCount, spawnPlayerCar);
-            carSpawner.OnCarsSpawned += () => OnPlayerCarAssigned?.Invoke(GetPlayerCar());
+            carSpawner.OnCarsSpawned += () =>
+            {
+                var playerCar = GetPlayerCar();
+                if (playerCar != null)
+                {
+                    DLogger.LogDev("Player car assigned.", category: logCategory);
+
+                    OnPlayerCarAssigned?.Invoke(playerCar);
+                }
+            };
 
             if (autoSpawn)
                 StartCoroutine(SpawnCoroutine());
