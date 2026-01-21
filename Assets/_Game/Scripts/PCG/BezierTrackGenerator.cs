@@ -1,6 +1,8 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.Splines;
+using Random = UnityEngine.Random;
 
 namespace RacingGame._Game.Scripts.PCG
 {
@@ -25,6 +27,10 @@ namespace RacingGame._Game.Scripts.PCG
         public string savedSeedKey = "PCG_TRACK_SEED";
         [Tooltip("If > 0, forces this seed at runtime (overrides random).")]
         public int debugSeedOverride = 0;
+
+        [Header("Plane start settings")] 
+        [Min(0)] public int planeStartKnotCount = 2;
+        public bool usePlaneStartOnPlay = true;
 
         [Header("Auto Build Dependencies")]
         public TrackMeshExtruder meshExtruder;
@@ -134,6 +140,27 @@ namespace RacingGame._Game.Scripts.PCG
 
                 pts.Add(new Vector3(x, y, z));
             }
+            
+            // Plane start
+            if (pts.Count > 0 && planeStartKnotCount > 0)
+            {
+                float startY = pts[0].y;
+                int count = Mathf.Clamp(planeStartKnotCount, 0, knotCount);
+
+                for (int i = 0; i < count; i++)
+                {
+                    var p = pts[i];
+                    p.y = startY;
+                    pts[i] = p;
+                }
+
+                if (usePlaneStartOnPlay && knotCount > 1)
+                {
+                    var last = pts[knotCount - 1];
+                    last.y = startY;
+                    pts[knotCount - 1] = last;
+                }
+            }
 
             // Build knots for cubic Bezier smoothness
             for (int i = 0; i < knotCount; i++)
@@ -151,6 +178,19 @@ namespace RacingGame._Game.Scripts.PCG
                 // tangents in/out
                 Vector3 tanIn = -dir * handleLen;
                 Vector3 tanOut = dir * handleLen;
+
+                // Flatten tangents
+                if (planeStartKnotCount > 0)
+                {
+                    bool inPlaneStart = i < Mathf.Clamp(planeStartKnotCount, 0, knotCount);
+                    bool isLastPlane = usePlaneStartOnPlay && (i == knotCount - 1);
+
+                    if (inPlaneStart || isLastPlane)
+                    {
+                        tanIn.y = 0f;
+                        tanOut.y = 0f;
+                    }
+                }
 
                 var knot = new BezierKnot(curr, tanIn, tanOut, Quaternion.identity);
                 spline.Add(knot);
