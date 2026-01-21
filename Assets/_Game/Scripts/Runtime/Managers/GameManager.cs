@@ -96,6 +96,7 @@ namespace RacingGame
         }
 
         public Car GetPlayerCar() => carSpawner?.PlayerCar;
+        public Car[] GetAllCars() => carSpawner?.SpawnedCars.ToArray() ?? Array.Empty<Car>();
 
         public void UpdateTickables()
         {

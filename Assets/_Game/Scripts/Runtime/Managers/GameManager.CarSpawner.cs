@@ -23,6 +23,7 @@ namespace RacingGame
             private readonly PCGManager pCGManager;
             private readonly Car carPrefab;
             private readonly int carCount;
+            private readonly bool spawnPlayer;
 
             private readonly List<Car> spawnedCars = new();
             private readonly (Vector3 spawnPoint, Vector3 trackForward)[] spawnPositions;
@@ -33,11 +34,12 @@ namespace RacingGame
 
             public event Action OnCarsSpawned;
 
-            public CarSpawner(PCGManager pCGManager, Car carPrefab, int carCount)
+            public CarSpawner(PCGManager pCGManager, Car carPrefab, int carCount, bool spawnPlayer = true)
             {
                 this.pCGManager = pCGManager;
                 this.carPrefab = carPrefab;
                 this.carCount = carCount;
+                this.spawnPlayer = spawnPlayer;
 
                 spawnPositions = new (Vector3, Vector3)[carCount];
                 PrepareSpawnPositions();
@@ -59,7 +61,7 @@ namespace RacingGame
                     Car car = spawnedCars[i];
                     if (car.TryGetComponent(out CarInputComponent inputComp))
                     {
-                        if (i == playerCarIndex)
+                        if (i == playerCarIndex && spawnPlayer)
                         {
                             inputComp.SetInputs(new PlayerCarInputs());
                             PlayerCar = car;

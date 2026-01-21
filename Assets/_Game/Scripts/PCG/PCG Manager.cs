@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace RacingGame
 {
-    [ExecuteAlways]
+    [ExecuteAlways, Obsolete("This component should no longer be used.")]
     public class PCGManager : MonoBehaviour
     {
 #if UNITY_EDITOR
