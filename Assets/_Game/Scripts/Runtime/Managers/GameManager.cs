@@ -1,6 +1,7 @@
 using NoSlimes.Logging;
 using NoSlimes.UnityUtils.Input;
 using NoSlimes.Util.UniTerminal;
+using RacingGame._Game.Scripts.PCG;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,6 +20,7 @@ namespace RacingGame
         [SerializeField] private Car carPrefab;
         [SerializeField] private int carCount = 2;
         [SerializeField] private bool autoSpawn = true;
+        [SerializeField] private bool spawnPlayerCar = true;
 
         private readonly List<ITickable> tickables = new();
         private CarSpawner carSpawner;
@@ -59,8 +61,19 @@ namespace RacingGame
 
         private void Start()
         {
-            carSpawner = new(PCGManager.Instance, carPrefab, carCount);
-            carSpawner.OnCarsSpawned += () => OnPlayerCarAssigned?.Invoke(GetPlayerCar());
+            var waypointBuilder = FindFirstObjectByType<TrackWaypointBuilder>();
+
+            carSpawner = new(waypointBuilder, carPrefab, carCount, spawnPlayerCar);
+            carSpawner.OnCarsSpawned += () =>
+            {
+                var playerCar = GetPlayerCar();
+                if (playerCar != null)
+                {
+                    DLogger.LogDev("Player car assigned.", category: logCategory);
+
+                    OnPlayerCarAssigned?.Invoke(playerCar);
+                }
+            };
 
             if (autoSpawn)
                 StartCoroutine(SpawnCoroutine());
@@ -112,6 +125,16 @@ namespace RacingGame
         {
             for (int i = 0; i < tickables.Count; i++) tickables[i].FixedTick();
         }
+
+#if DEBUG
+        private void OnDrawGizmos()
+        {
+            foreach (var tickable in tickables)
+            {
+                tickable.DrawDebug();
+            }
+        }
+#endif
 
         private void Update() => StateMachine.Update();
         private void LateUpdate() => StateMachine.LateUpdate();

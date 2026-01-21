@@ -1,9 +1,11 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 using System;
+
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Cinemachine;
+using System.Linq;
 
 public struct PathPoint
 {
@@ -11,6 +13,14 @@ public struct PathPoint
     public Vector3 forward;
     public float curvature;
     public float trackWidth;
+}
+
+public struct CarContexts
+{
+    public float Distance;
+    public float ForwardDot;
+    public float LateralDot;
+    public float Speed;
 }
 
 namespace RacingGame
@@ -37,18 +47,27 @@ namespace RacingGame
 
         [SerializeField]
         private PCGManager pCG;
-
+        CarContexts carAhead;
+        CarContexts carRight;
+        CarContexts carLeft;
+        CarContexts carBack;
         public List<PathPoint> pathPoints;
+        Car[] AllCars;
+        private List<CarContexts> nearbyCarContext = new List<CarContexts>();
         private float currentDistance;
         private float totalDistance;
         private int currentindex = 0;
-        private float maxSpeed = 50;
+        private float maxSpeed = 100;
         private float currentSpeed = 20;
         private float maxLatAccel = 8.0f;
         private float steerInput;
         private float signedAngle;
         private float currentOffset = 0;
         private Vector3 targetPosition;
+        float distanceToTurn;
+        float widthFactor;
+        float averageCurvature;
+        float curveFactor;
         private float throttle = 0;
         private bool brake;
         private bool brakingHard;
@@ -131,7 +150,7 @@ namespace RacingGame
 
             totalDistance = CumulativeLength[n - 1];
 
-            currentSpeed = rigidBody.linearVelocity.magnitude;
+            AllCars = GameManager.Instance.GetAllCars();
 
             GameManager.Instance.RegisterTickable(this);
         }
@@ -141,11 +160,84 @@ namespace RacingGame
 
         public void Tick()
         {
+            nearbyCarContext.Clear();
+
+            foreach (Car car in AllCars)
+            { 
+                Vector3 toOther = car.transform.position - thisTransform.position;
+                float distance = toOther.magnitude;
+
+                Vector3 toOtherNorm = toOther.normalized;
+                float forwardDot = Vector3.Dot(thisTransform.forward, toOtherNorm);
+                float lateralDot = Vector3.Dot(thisTransform.right, toOtherNorm);
+
+                float speed = car.Rigidbody.linearVelocity.magnitude;
+
+                CarContexts ctx = new CarContexts 
+                {
+                    Distance = distance,
+                    ForwardDot = forwardDot,
+                    LateralDot = lateralDot,
+                    Speed = speed
+                };
+
+                nearbyCarContext.Add(ctx);
+            }
+
+            carAhead = default;
+            carRight = default;
+            carLeft = default;
+            carBack = default;
+
+            float closestAhead = float.MaxValue;
+            float closestRight = float.MaxValue;
+            float closestLeft = float.MaxValue;
+            float closestBack = float.MaxValue;
+
+            foreach (CarContexts car in nearbyCarContext)
+            { 
+                if(car.ForwardDot > 0.3f)
+                {
+                    if(car.Distance < carAhead.Distance)
+                    {
+                        carAhead = car;
+                        closestAhead = carAhead.Distance;
+                    }
+                }
+                if(car.LateralDot > 0.5f)
+                {
+                    if(car.Distance < carAhead.Distance)
+                    {
+                        carRight = car;
+                        closestRight = carRight.Distance;
+                    }
+                }
+                if (car.LateralDot < -0.5f)
+                {
+                    if (car.Distance < carAhead.Distance)
+                    {
+                        carLeft = car;
+                        closestLeft = carLeft.Distance;
+                    }
+                }
+                if (car.ForwardDot < -0.5f)
+                {
+                    if (car.Distance < carAhead.Distance)
+                    {
+                        carBack = car;
+                        closestBack = carBack.Distance;
+                    }
+                }
+            }
+
+            currentSpeed = rigidBody.linearVelocity.magnitude;
             FindClosestSegment();
             currentDistance = CumulativeLength[bestSegment] + bestT * SegmentLength[bestSegment];
 
             float progress = currentDistance / totalDistance;
 
+            averageCurvature = EstimateCurvature();
+            curveFactor = Mathf.InverseLerp(0.02f, 0.08f, averageCurvature);
             GetSteering();
             Offset();
             ThrottleOrBrake();
@@ -153,11 +245,6 @@ namespace RacingGame
             MoveInput = new Vector2(steerInput, throttle);
             HandBrakeInput = brake;
             NitroInput = ShouldBoost();
-
-            //Gizmos.color = Color.red;
-            //Gizmos.DrawSphere(bestClosest, 0.3f);
-            //Gizmos.color = Color.green;
-            //Gizmos.DrawSphere(targetPosition, 0.3f);
         }
 
         bool ShouldBoost()
@@ -168,10 +255,9 @@ namespace RacingGame
         public void GetSteering()
         {
             float lookAheadDistance = Mathf.Lerp(15f, 40f, currentSpeed / maxSpeed);
-            if(sharpTurnAhead)
-            {
-                lookAheadDistance *= 0.6f;
-            }
+            
+            lookAheadDistance *= Mathf.Lerp(1f, 0.45f, curveFactor);
+
             float targetS = currentDistance + lookAheadDistance;
             targetS %= totalDistance;
 
@@ -181,14 +267,19 @@ namespace RacingGame
             Vector3 pathForwardv2 = (PositionAtDistance(targetS + 1f) - PositionAtDistance(targetS)).normalized;
 
             Vector3 targetDirection = (targetPosition - thisTransform.position).normalized;
+            Vector3 pathDirNow = pathPoints[bestSegment].forward;
+            Vector3 blendDir = Vector3.Slerp(pathDirNow, targetDirection, 0.6f);
 
-            signedAngle = Vector3.SignedAngle(thisTransform.forward, targetDirection, Vector3.up);
+            signedAngle = Vector3.SignedAngle(thisTransform.forward, blendDir, Vector3.up);
 
             float maxSteer = 30f;
 
             steerInput = Mathf.Clamp(signedAngle / maxSteer, -1f, 1f);
 
-            if(brakingHard)
+            float anticipationNoise = UnityEngine.Random.Range(-2f, 2f);
+            steerInput += anticipationNoise * 0.02f;
+
+            if (brakingHard)
             {
                 steerInput *= 0.6f;
             }
@@ -196,12 +287,11 @@ namespace RacingGame
 
         public void ThrottleOrBrake()
         {
-            float averageCurvature = EstimateCurvature();
             sharpTurnAhead = averageCurvature > sharpTurnCurvature;
             float safeSpeed = Mathf.Sqrt(maxLatAccel / Mathf.Max(averageCurvature, 0.001f));
 
             float brakingDistance = EstimateBrakingDistance(currentSpeed, safeSpeed);
-            float distanceToTurn = 30f;
+            distanceToTurn = 30f;
 
             if (sharpTurnAhead)
             {
@@ -211,7 +301,7 @@ namespace RacingGame
 
             brakingHard = sharpTurnAhead && currentSpeed > safeSpeed * 1.1f;
 
-            float widthFactor = WidthFactor();
+            widthFactor = WidthFactor();
             float widthSpeedMultiplier = Mathf.Lerp(0.9f, 1.05f, widthFactor);
             safeSpeed *= widthSpeedMultiplier;
 
@@ -232,7 +322,7 @@ namespace RacingGame
                 brake = true;
             }
 
-            if(brakingDistance > distanceToTurn)
+            if (brakingDistance > distanceToTurn)
             {
                 desiredThrottle = 0;
                 brake = true;
@@ -261,6 +351,25 @@ namespace RacingGame
             float desiredOffset = -turnSign * halfWidth * sharpTurnStrength;
 
             desiredOffset = Mathf.Clamp(desiredOffset, -halfWidth + margin, halfWidth - margin);
+
+            if(!sharpTurnAhead || distanceToTurn > 20f)
+            {
+                desiredOffset *= 0.3f;
+            }
+
+            float avoidanceOffest = 0f;
+            if(carAhead.ForwardDot > 0.3f && carAhead.Distance < 12f)
+            {
+                avoidanceOffest += Mathf.Sign(carAhead.LateralDot) * -1f * Mathf.Lerp(1f, 0f, carAhead.Distance / 12f);
+                desiredOffset += avoidanceOffest * halfWidth * 0.4f;
+            }
+
+            bool canOvertake = widthFactor > 0.6f && !sharpTurnAhead;
+            if (canOvertake && carAhead.ForwardDot > 0.6f && carAhead.Distance < 15f)
+            {
+                float overTakeSide = Mathf.Sign(carAhead.LateralDot);
+                desiredOffset += overTakeSide * halfWidth * 0.6f;
+            }
 
             if (Mathf.Abs(lateralOffset) > halfWidth)
             {
@@ -354,7 +463,7 @@ namespace RacingGame
 
         public float EstimateCurvature()
         {
-            float lookAhead = sharpTurnAhead ? 80f : 50f;
+            float lookAhead = sharpTurnAhead ? 40f : 15f;
             int samples = 5;
             float curvatureSum = 0.0f;
 

@@ -1,4 +1,5 @@
 using NoSlimes.UnityUtils.Common;
+using RacingGame._Game.Scripts.PCG;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,7 +21,7 @@ namespace RacingGame
 
         private class CarSpawner
         {
-            private readonly PCGManager pCGManager;
+            private readonly TrackWaypointBuilder waypointBuilder;
             private readonly Car carPrefab;
             private readonly int carCount;
             private readonly bool spawnPlayer;
@@ -34,9 +35,9 @@ namespace RacingGame
 
             public event Action OnCarsSpawned;
 
-            public CarSpawner(PCGManager pCGManager, Car carPrefab, int carCount, bool spawnPlayer = true)
+            public CarSpawner(TrackWaypointBuilder waypointBuilder, Car carPrefab, int carCount, bool spawnPlayer = true)
             {
-                this.pCGManager = pCGManager;
+                this.waypointBuilder = waypointBuilder;
                 this.carPrefab = carPrefab;
                 this.carCount = carCount;
                 this.spawnPlayer = spawnPlayer;
@@ -68,11 +69,11 @@ namespace RacingGame
                         }
                         else
                         {
-                            var centerLine = pCGManager.Centerline;
-                            var leftEdge = pCGManager.LeftEdge;
-                            var rightEdge = pCGManager.RightEdge;
+                            var centerLine = waypointBuilder.Centerline;
+                            var leftEdge = waypointBuilder.LeftEdge;
+                            var rightEdge = waypointBuilder.RightEdge;
 
-                            var aiController = new AICarController(centerLine, rightEdge, leftEdge);
+                            var aiController = new AICarController(centerLine, leftEdge, rightEdge);
                             inputComp.SetInputs(aiController);
                         }
                     }
@@ -91,9 +92,9 @@ namespace RacingGame
             }
             private (Vector3, Vector3) GetSpawnPosition(int index)
             {
-                var center = pCGManager.Centerline;
-                var left = pCGManager.LeftEdge;
-                var right = pCGManager.RightEdge;
+                var center = waypointBuilder.Centerline;
+                var left = waypointBuilder.LeftEdge;
+                var right = waypointBuilder.RightEdge;
 
                 float distanceBetweenPoints = Vector3.Distance(center[0], center[1]);
                 if (distanceBetweenPoints < 0.001f) distanceBetweenPoints = 0.1f; 
