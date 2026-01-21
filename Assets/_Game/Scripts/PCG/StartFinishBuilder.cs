@@ -45,7 +45,7 @@ namespace RacingGame._Game.Scripts.PCG
         {
             if (!waypointBuilder) return;
 
-            // We need at least 2 waypoints to get forward direction
+            // 2 waypoints to get forward direction
             var wps = waypointBuilder.Waypoints;
             if (wps == null || wps.Count < 2 || wps[0] == null || wps[1] == null)
                 return;
@@ -69,7 +69,7 @@ namespace RacingGame._Game.Scripts.PCG
             _lineGO.transform.position = p0 + Vector3.up * yOffset;
             _lineGO.transform.rotation = rot;
 
-            // Size the line (a thin box)
+            // Size the line
             float width = roadWidth + extraWidth;
             _lineGO.transform.localScale = new Vector3(width, lineThickness, lineLength);
 
@@ -84,11 +84,10 @@ namespace RacingGame._Game.Scripts.PCG
                 _triggerGO.transform.SetParent(_lineGO.transform, false);
                 _triggerGO.transform.localPosition = triggerLocalOffset;
 
-                // Make trigger match road width by default
+                // Make trigger match road width
                 var bc = _triggerGO.GetComponent<BoxCollider>();
                 bc.isTrigger = true;
-
-                // If you want it to auto-follow roadWidth:
+                
                 bc.size = new Vector3(roadWidth + extraWidth, triggerSize.y, triggerSize.z);
                 bc.center = Vector3.zero;
             }
@@ -109,7 +108,7 @@ namespace RacingGame._Game.Scripts.PCG
                     _lineGO.name = "StartFinishLine_AUTOGEN";
 #if UNITY_EDITOR
                     if (!Application.isPlaying)
-                        DestroyImmediate(_lineGO.GetComponent<Collider>()); // remove cube collider in editor
+                        DestroyImmediate(_lineGO.GetComponent<Collider>());
                     else
 #endif
                         Destroy(_lineGO.GetComponent<Collider>());

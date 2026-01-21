@@ -19,26 +19,19 @@ namespace RacingGame._Game.Scripts.PCG
 
         [Header("Seed")] public int seed = 67;
         public bool regenerate;
-
-        [Header("Runtime Generation")]
-        [Tooltip("If true, generates a new random seed when the game starts (Play mode).")]
         public bool randomizeSeedOnPlay = true;
-
-        [Tooltip("If true, the same random seed is reused across runs (PlayerPrefs).")]
         public bool useSavedSeed = false;
-
         [Tooltip("PlayerPrefs key used when useSavedSeed is enabled.")]
         public string savedSeedKey = "PCG_TRACK_SEED";
-
         [Tooltip("If > 0, forces this seed at runtime (overrides random).")]
         public int debugSeedOverride = 0;
 
-        [Header("Auto Build Dependencies (optional but recommended)")]
+        [Header("Auto Build Dependencies")]
         public TrackMeshExtruder meshExtruder;
-
         public TrackWaypointBuilder waypointBuilder;
 
-        [Header("Refrence")] public StartFinishBuilder startFinishBuilder;
+        [Header("Reference")] 
+        public StartFinishBuilder startFinishBuilder;
 
         private void Reset()
         {
@@ -65,10 +58,9 @@ namespace RacingGame._Game.Scripts.PCG
 
         private void GenerateOnPlayIfWanted()
         {
-            // Only do this in play mode, once at start
             if (!randomizeSeedOnPlay && debugSeedOverride <= 0 && !useSavedSeed)
             {
-                // Use whatever seed is already set in inspector
+                // Use whatever seed is already set
                 GenerateAndRebuildAll();
                 return;
             }
@@ -81,7 +73,6 @@ namespace RacingGame._Game.Scripts.PCG
             }
             else if (useSavedSeed)
             {
-                // Persisted seed (same track every run until you delete PlayerPrefs)
                 if (!PlayerPrefs.HasKey(savedSeedKey))
                 {
                     PlayerPrefs.SetInt(savedSeedKey, Random.Range(1, int.MaxValue));
@@ -105,7 +96,7 @@ namespace RacingGame._Game.Scripts.PCG
         {
             Generate();
 
-            // Rebuild road + waypoints after spline changes
+            // Rebuild road + waypoints + goalline
             if (meshExtruder)
                 meshExtruder.Build();
 
@@ -125,7 +116,7 @@ namespace RacingGame._Game.Scripts.PCG
             var spline = new Spline();
             spline.Closed = true;
 
-            // Create rough points in a circle (with noise)
+            // Create rough points in a circle
             List<Vector3> pts = new List<Vector3>(knotCount);
 
             for (int i = 0; i < knotCount; i++)
@@ -137,24 +128,23 @@ namespace RacingGame._Game.Scripts.PCG
                 float x = Mathf.Cos(ang) * r;
                 float z = Mathf.Sin(ang) * r;
 
-                // height via Perlin (smooth hills)
+                // height via Perlin
                 float h = (Mathf.PerlinNoise((x + 999f) * heightNoiseScale, (z + 999f) * heightNoiseScale) - 0.5f) * 2f;
                 float y = h * heightAmplitude;
 
                 pts.Add(new Vector3(x, y, z));
             }
 
-            // Build knots with tangents for cubic Bezier smoothness
+            // Build knots for cubic Bezier smoothness
             for (int i = 0; i < knotCount; i++)
             {
                 Vector3 prev = pts[(i - 1 + knotCount) % knotCount];
                 Vector3 curr = pts[i];
                 Vector3 next = pts[(i + 1) % knotCount];
-
-                // direction across neighbors
+                
                 Vector3 dir = (next - prev).normalized;
 
-                // scale tangents based on local segment length
+                // scale tangents
                 float localLen = Vector3.Distance(curr, next);
                 float handleLen = localLen * tangentStrength;
 

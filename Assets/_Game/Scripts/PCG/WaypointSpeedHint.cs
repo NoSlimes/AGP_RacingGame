@@ -12,9 +12,9 @@ namespace RacingGame
     public class WaypointSpeedHint : MonoBehaviour
     {
         [Header("Geometry")] 
-        public float turnAngleDeg; // angle between segments (planar)
-        public float curvature; // approx 1/radius (planar)
-        public float radius; // meters (planar)
+        public float turnAngleDeg; // angle between segments
+        public float curvature; // approx 1/radius
+        public float radius; // meters
 
         [Header("Speed Hint")] 
         public float recommendedSpeed; // m/s

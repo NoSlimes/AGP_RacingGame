@@ -7,37 +7,35 @@ namespace RacingGame._Game.Scripts.PCG
     [ExecuteAlways]
     public class TrackWaypointBuilder : MonoBehaviour
     {
-        [Header("Input")] public SplineContainer splineContainer;
+        [Header("Input")] 
+        public SplineContainer splineContainer;
 
-        [Header("Waypoint Output")] public Transform waypointRoot;
+        [Header("Waypoint Output")] 
+        public Transform waypointRoot;
         public string waypointNamePrefix = "WP_";
         public bool spawnGameObjects = true;
         public bool clearOldOnBuild = true;
 
-        [Header("Sampling")] [Min(0.25f)] public float spacingMeters = 6f;
+        [Header("Sampling")] 
+        [Min(0.25f)] public float spacingMeters = 6f;
         public float heightOffset = 0.5f;
         public bool alignRotationToTangent = true;
 
-        [Header("Speed Hints (from curvature)")]
+        [Header("Speed Hints")]
         [Tooltip("If true, we compute curvature/radius and a recommended speed for each waypoint.")]
         public bool computeSpeedHints = true;
-
         [Tooltip("Treat turns using planar (flattened) direction to avoid hills affecting turn sharpness.")]
         public bool usePlanarTurn = true;
-
         [Tooltip("Friction coefficient used for corner speed approximation. Arcade: 1.2-2.0, Sim: 0.8-1.2")]
         [Range(0.2f, 3.0f)]
         public float frictionMu = 1.4f;
-
-        [Tooltip("Multiplier on computed corner speed. Lower = more cautious AI.")] [Range(0.3f, 2.0f)]
+        [Tooltip("Multiplier on computed corner speed. Lower = more cautious AI.")] 
+        [Range(0.3f, 2.0f)]
         public float speedMultiplier = 1.0f;
-
         [Tooltip("Minimum recommended speed (m/s).")] [Min(0f)]
         public float minRecommendedSpeed = 4f;
-
         [Tooltip("Maximum recommended speed (m/s).")] [Min(0f)]
         public float maxRecommendedSpeed = 60f;
-
         [Tooltip("Anything with turn angle below this is treated as straight-ish.")] [Range(0f, 30f)]
         public float straightAngleThresholdDeg = 3f;
 
@@ -45,26 +43,25 @@ namespace RacingGame._Game.Scripts.PCG
         [Tooltip("How many waypoints ahead to consider when deciding if we need to brake now.")]
         [Min(1)]
         public int lookAheadWaypoints = 8;
-
         [Tooltip("If upcoming recommended speed is lower than current by this amount (m/s), mark a brake zone.")]
         [Min(0f)]
         public float brakeDeltaThreshold = 6f;
-
         [Tooltip("How many waypoints BEFORE a slow corner to mark as Brake zone.")] [Min(0)]
         public int brakeLeadWaypoints = 4;
-
         [Tooltip("How many waypoints AFTER a slow corner to mark as Accelerate zone.")] [Min(0)]
         public int accelTailWaypoints = 4;
 
-        [Header("Debug")] public bool drawGizmos = true;
+        [Header("Debug")] 
+        public bool drawGizmos = true;
         public float gizmoRadius = 0.35f;
 
-        [Header("Build")] public bool rebuild;
+        [Header("Build")] 
+        public bool rebuild;
 
         public List<Transform> Waypoints { get; private set; } = new List<Transform>();
         public List<Vector3> WaypointPositions { get; private set; } = new List<Vector3>();
 
-        // Optional computed hints (parallel to WaypointPositions)
+        // Computed hints (parallel to WaypointPositions)
         public List<float> RecommendedSpeeds { get; private set; } = new List<float>();
         public List<float> Radii { get; private set; } = new List<float>();
         public List<float> Curvatures { get; private set; } = new List<float>();
@@ -144,14 +141,14 @@ namespace RacingGame._Game.Scripts.PCG
                 }
             }
 
-            // Sample positions + create waypoint objects
+            // Positions + create waypoint objects
             for (int i = 0; i < sampleCount; i++)
             {
                 float t;
                 if (closed)
-                    t = i / (float)sampleCount; // 0..1 (exclusive of 1)
+                    t = i / (float)sampleCount;
                 else
-                    t = (sampleCount <= 1) ? 0f : i / (float)(sampleCount - 1); // includes end
+                    t = (sampleCount <= 1) ? 0f : i / (float)(sampleCount - 1);
 
                 Vector3 localPos = SplineUtility.EvaluatePosition(spline, t);
                 Vector3 localTan = SplineUtility.EvaluateTangent(spline, t);
@@ -175,13 +172,11 @@ namespace RacingGame._Game.Scripts.PCG
                     Waypoints.Add(go.transform);
                 }
             }
-
-            // Prepare arrays
+            
             int n = WaypointPositions.Count;
             if (n < 3)
                 return;
-
-            // Fill defaults
+            
             for (int i = 0; i < n; i++)
             {
                 RecommendedSpeeds.Add(maxRecommendedSpeed);
@@ -210,7 +205,7 @@ namespace RacingGame._Game.Scripts.PCG
                 Vector3 a = p - pPrev;
                 Vector3 b = pNext - p;
 
-                // Compute slope (for debug)
+                // Compute slope
                 float slopeDeg = 0f;
                 {
                     Vector3 dir = (pNext - p);
@@ -233,7 +228,7 @@ namespace RacingGame._Game.Scripts.PCG
 
                 TurnAnglesDeg[i] = angleDeg;
 
-                // If nearly straight, huge radius and max speed
+                // If straight, max speed?
                 if (angleDeg < straightAngleThresholdDeg || a.magnitude < 0.001f || b.magnitude < 0.001f)
                 {
                     Radii[i] = float.PositiveInfinity;
@@ -244,8 +239,7 @@ namespace RacingGame._Game.Scripts.PCG
                     continue;
                 }
 
-                // Approximate radius using chord length and turn angle:
-                // Use average segment length as local arc length approximation.
+                // Approximate radius using chord length and turn angle
                 float avgSeg = 0.5f * (a.magnitude + b.magnitude);
 
                 // curvature k ~= angle / arcLength
@@ -266,7 +260,7 @@ namespace RacingGame._Game.Scripts.PCG
             // Mark braking zones
             MarkBrakeAndAccelZones(closed);
 
-            // Apply final zones to waypoint components (if spawned)
+            // Apply final zones to waypoint components
             for (int i = 0; i < n; i++)
             {
                 ApplyHintToWaypointGo(i, TurnAnglesDeg[i], Curvatures[i], Radii[i], RecommendedSpeeds[i], Zones[i], 0f);
@@ -278,7 +272,7 @@ namespace RacingGame._Game.Scripts.PCG
             int n = WaypointPositions.Count;
             if (n < 3) return;
 
-            // Detect “need to brake” at waypoint i based on lookahead minimum speed
+            // Detect “need to brake” at waypoint
             for (int i = 0; i < n; i++)
             {
                 float current = RecommendedSpeeds[i];
@@ -304,7 +298,7 @@ namespace RacingGame._Game.Scripts.PCG
 
                 if (minAhead < current - brakeDeltaThreshold)
                 {
-                    // Mark some lead-up waypoints as Brake
+                    // Mark waypoints as Brake
                     for (int lead = 0; lead <= brakeLeadWaypoints; lead++)
                     {
                         int b = i + lead;
@@ -316,7 +310,7 @@ namespace RacingGame._Game.Scripts.PCG
                         Zones[b] = WaypointZoneType.Brake;
                     }
 
-                    // Mark after the slow corner as Accelerate
+                    // Mark corner as Accelerate
                     for (int tail = 0; tail <= accelTailWaypoints; tail++)
                     {
                         int a = minAheadIndex + tail;
@@ -332,7 +326,7 @@ namespace RacingGame._Game.Scripts.PCG
                 }
             }
 
-            // Anything not set becomes Cruise
+            // Everything else, Cruise
             for (int i = 0; i < n; i++)
             {
                 if (Zones[i] != WaypointZoneType.Brake && Zones[i] != WaypointZoneType.Accelerate)
@@ -365,7 +359,7 @@ namespace RacingGame._Game.Scripts.PCG
             hint.recommendedSpeed = recSpeed;
             hint.zone = zone;
 
-            // only write slope if provided (avoid overwriting with 0 on second apply pass)
+            // Only write slope if provided
             if (Mathf.Abs(slopeDeg) > 0.0001f)
                 hint.slopeDeg = slopeDeg;
         }
@@ -379,7 +373,7 @@ namespace RacingGame._Game.Scripts.PCG
             {
                 Color gizmoColor = Color.white;
 
-                // Preferred: read from WaypointSpeedHint component (if spawned)
+                // Read from WaypointSpeedHint component
                 if (spawnGameObjects && Waypoints != null && i < Waypoints.Count && Waypoints[i] != null)
                 {
                     var hint = Waypoints[i].GetComponent<WaypointSpeedHint>();
@@ -388,7 +382,7 @@ namespace RacingGame._Game.Scripts.PCG
                         gizmoColor = ZoneToColor(hint.zone);
                     }
                 }
-                // Fallback: read from Zones list (if not spawning GOs)
+                // Fallback, read from Zones list
                 else if (Zones != null && i < Zones.Count)
                 {
                     gizmoColor = ZoneToColor(Zones[i]);
@@ -397,7 +391,7 @@ namespace RacingGame._Game.Scripts.PCG
                 Gizmos.color = gizmoColor;
                 Gizmos.DrawSphere(WaypointPositions[i], gizmoRadius);
 
-                // Draw connection line (slightly dimmer)
+                // Draw connection line
                 int next = i + 1;
                 if (next < WaypointPositions.Count)
                 {
@@ -411,6 +405,7 @@ namespace RacingGame._Game.Scripts.PCG
 
         Color ZoneToColor(WaypointZoneType zone)
         {
+            // Color for zones
             switch (zone)
             {
                 case WaypointZoneType.Brake:

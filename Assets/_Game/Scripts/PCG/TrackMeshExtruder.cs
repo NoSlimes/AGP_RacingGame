@@ -21,7 +21,7 @@ namespace RacingGame._Game.Scripts.PCG
         public float uvTiling = 2f;
         [SerializeField] private Material roadMaterial;
 
-        [Header("Curbs (optional geometry)")]
+        [Header("Curbs")]
         public bool generateCurbs = true;
         [Min(0.05f)] public float curbWidth = 0.35f;
         [Min(0.01f)] public float curbHeight = 0.08f;
@@ -84,7 +84,7 @@ namespace RacingGame._Game.Scripts.PCG
             var verts = new List<Vector3>(effectiveRings * vertsPerRing);
             var uvs = new List<Vector2>(effectiveRings * vertsPerRing);
 
-            // Split triangles into two submeshes
+            // Split triangles into submeshes
             var roadTris = new List<int>(effectiveRings * 12);
             var curbTris = new List<int>(effectiveRings * 12);
 
@@ -185,8 +185,7 @@ namespace RacingGame._Game.Scripts.PCG
             mesh.RecalculateBounds();
 
             _mf.sharedMesh = mesh;
-
-            // Assign materials from inspector onto MeshRenderer slots
+            
             ApplyMaterialsToRenderer();
 
             if (addMeshCollider)
@@ -219,7 +218,7 @@ namespace RacingGame._Game.Scripts.PCG
         {
             // Road top
             AddQuad(roadTris, ringBaseA + 0, ringBaseA + 1, ringBaseB + 0, ringBaseB + 1);
-            // Road bottom (flip)
+            // Road bottom
             AddQuad(roadTris, ringBaseA + 3, ringBaseA + 2, ringBaseB + 3, ringBaseB + 2);
             // Left wall
             AddQuad(roadTris, ringBaseA + 2, ringBaseA + 0, ringBaseB + 2, ringBaseB + 0);
@@ -236,7 +235,7 @@ namespace RacingGame._Game.Scripts.PCG
             AddQuad(curbTris, ringBaseA + 0, ringBaseA + 5, ringBaseB + 0, ringBaseB + 5);
             AddQuad(curbTris, ringBaseA + 6, ringBaseA + 1, ringBaseB + 6, ringBaseB + 1);
 
-            // Outer faces (simple)
+            // Outer faces
             AddQuad(curbTris, ringBaseA + 4, ringBaseA + 0, ringBaseB + 4, ringBaseB + 0);
             AddQuad(curbTris, ringBaseA + 1, ringBaseA + 7, ringBaseB + 1, ringBaseB + 7);
         }
