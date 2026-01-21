@@ -576,7 +576,8 @@ GameObject:
   - component: {fileID: 6556300916948461343}
   - component: {fileID: 8842448982863406061}
   - component: {fileID: -8639534672835630653}
-  - component: {fileID: 2649669409264438698}
+  - component: {fileID: 5294426131317776313}
+  - component: {fileID: 4456176329557439927}
   m_Layer: 0
   m_Name: Car
   m_TagString: Untagged
@@ -712,7 +713,23 @@ MonoBehaviour:
   slipAudioVolume: 0.25
   skidTrailPrefab: {fileID: 707103282903700802, guid: dabda883eb3cfef4ea6aa5c82fed5b84, type: 3}
   skidSlipThreshold: 0.75
---- !u!114 &2649669409264438698
+--- !u!114 &5294426131317776313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574116175340734853}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d3ae365adae28b44a9ed3fcb020d951, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RacingGame.CarTopleRecovery
+  upsideDownDotThreshold: 0.7
+  timeBeforeReset: 3
+  upwardImpulse: 5
+  velociityDamping: 0.5
+--- !u!114 &4456176329557439927
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
