@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -29,6 +30,8 @@ namespace RacingGame
         private WheelCollider[] wheelColliders;
         private SkidTrail[] skidTrails;
 
+        private Dictionary<WheelControl, ParticleSystem> skidParticles = new();
+
         public int Priority => 100;
 
         public void Initialize(Car ownerCar)
@@ -38,11 +41,21 @@ namespace RacingGame
             rb = ownerCar.Rigidbody;
             wheelControllers = ownerCar.GetCarComponents<WheelControl>();
 
+            foreach (var wheelController in wheelControllers)
+            {
+                var ps = wheelController.GetComponentInChildren<ParticleSystem>();
+                if (ps != null)
+                {
+                    ps.Stop();
+                    skidParticles[wheelController] = ps;
+                }
+            }
+
             wheelColliders = new WheelCollider[wheelControllers.Length];
             for (int i = 0; i < wheelControllers.Length; i++)
             {
                 WheelControl wheelController = wheelControllers[i];
-                wheelColliders[i] = wheelController.GetComponent<WheelCollider>();  
+                wheelColliders[i] = wheelController.GetComponent<WheelCollider>();
             }
 
             if (engineAudioSource != null)
@@ -100,6 +113,8 @@ namespace RacingGame
                 WheelCollider col = wheelColliders[i];
                 SkidTrail trail = skidTrails[i];
 
+                if (skidParticles.TryGetValue(control, out ParticleSystem ps)) { }
+
                 if (!col.GetGroundHit(out WheelHit hit))
                 {
                     trail.EndTrail();
@@ -113,10 +128,20 @@ namespace RacingGame
                 {
                     float intensity = Mathf.InverseLerp(skidSlipThreshold, 1.2f, slip);
                     trail.AddPoint(hit.point + hit.normal * 0.02f, hit.normal, intensity);
+
+                    if (ps)
+                    {
+                        ps.Play();
+                    }
                 }
                 else
                 {
                     trail.EndTrail();
+
+                    if (ps)
+                    {
+                        ps.Stop();
+                    }
                 }
             }
 
