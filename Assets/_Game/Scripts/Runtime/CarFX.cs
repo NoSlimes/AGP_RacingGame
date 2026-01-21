@@ -113,8 +113,6 @@ namespace RacingGame
             {
                 WheelControl control = wheelControllers[i];
 
-                // Usually we only show trails for rear wheels, but we need slip data from all
-                // for the audio to sound correct.
                 WheelCollider col = wheelColliders[i];
                 SkidTrail trail = skidTrails[i];
 
@@ -125,16 +123,12 @@ namespace RacingGame
                     continue;
                 }
 
-                // --- GRASS DETECTION ---
                 bool isOnGrass = (hit.collider.sharedMaterial != null && hit.collider.sharedMaterial.name.Contains("Grass"))
                                  || hit.collider.name.Contains("Grass");
 
-                // On grass, the reported slip values are much lower because friction is lower.
-                // We scale the threshold and the reported slip to compensate.
                 float effectiveThreshold = isOnGrass ? (skidSlipThreshold * 0.25f) : skidSlipThreshold;
                 float slip = Mathf.Max(Mathf.Abs(hit.forwardSlip), Mathf.Abs(hit.sidewaysSlip));
 
-                // Update max slip for audio (we normalize grass slip so it's audible)
                 float audioSlip = isOnGrass ? (slip * 4f) : slip;
                 if (audioSlip > maxSlipForAudio) maxSlipForAudio = audioSlip;
 
@@ -142,7 +136,6 @@ namespace RacingGame
 
                 if (slip > effectiveThreshold)
                 {
-                    // Calculate intensity based on the effective threshold
                     float intensity = Mathf.InverseLerp(effectiveThreshold, effectiveThreshold * 3f, slip);
                     trail.AddPoint(hit.point + hit.normal * 0.02f, hit.normal, intensity);
 
@@ -168,55 +161,40 @@ namespace RacingGame
         {
             if (engineAudioSource == null || carControl == null) return;
 
-            // 1. Get Forward Speed (ignores vertical falling speed)
             float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
             float speedRatio = Mathf.Clamp01(Mathf.Abs(forwardSpeed) / carControl.MaxSpeed);
 
-            // 2. Determine Grounded State
             bool isGrounded = false;
             for (int i = 0; i < wheelColliders.Length; i++)
             {
                 if (wheelColliders[i].isGrounded) { isGrounded = true; break; }
             }
 
-            // 3. Calculate Engine Load (How hard is the engine working?)
-            // If we are in the air, load is just throttle. 
-            // If on ground, load is throttle + a bit of speed resistance.
             float throttle = Mathf.Abs(carInput.Inputs.MoveInput.y);
             float targetLoad = isGrounded ? throttle : throttle * 0.5f;
             engineLoad = Mathf.Lerp(engineLoad, targetLoad, Time.deltaTime * 3f);
 
-            // 4. Calculate RPM (Pitch)
             float targetRPM = 0f;
 
             if (isGrounded)
             {
-                // PITCH follows Gears when on ground (even if rolling)
                 float gearCount = 5f;
                 float gearSector = 1f / gearCount;
                 float gearRelativeSpeed = (speedRatio % gearSector) / gearSector;
 
-                // Base RPM from wheels + extra RPM from throttle "strain"
                 targetRPM = Mathf.Lerp(0.2f, 0.9f, gearRelativeSpeed) + (throttle * 0.1f);
             }
             else
             {
-                // PITCH follows throttle only when in air (Revving)
-                // This prevents "insane" engine sounds when falling
                 targetRPM = Mathf.Lerp(0.1f, 0.7f, throttle);
             }
 
             if (carInput.Inputs.NitroInput) targetRPM += 0.2f;
             currentRPM = Mathf.Lerp(currentRPM, targetRPM, Time.deltaTime * 10f);
 
-            // 5. Apply Pitch
             engineAudioSource.pitch = Mathf.Lerp(minPitch, maxPitch, currentRPM);
 
-            // 6. Apply Volume (The "Rolling" Fix)
-            // We want the engine to be audible when rolling, but much quieter than when accelerating.
-            // minVolume = Idle/Rolling volume
-            // maxVolume = Full throttle volume
-            float gearVolumeFactor = isGrounded ? (speedRatio * 0.2f) : 0f; // slight volume increase with speed
+            float gearVolumeFactor = isGrounded ? (speedRatio * 0.2f) : 0f;
             float loadVolume = engineLoad * (maxVolume - minVolume);
 
             engineAudioSource.volume = minVolume + loadVolume + gearVolumeFactor;
@@ -226,7 +204,6 @@ namespace RacingGame
         {
             if (slipAudioSource == null) return;
 
-            // slip is now pre-normalized for grass in FixedTickComponent
             float targetVolume = Mathf.InverseLerp(slipStart, slipFull, slip);
             targetVolume = Mathf.Clamp01(targetVolume);
 
