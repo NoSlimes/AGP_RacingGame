@@ -1,3 +1,4 @@
+using NUnit.Framework.Interfaces;
 using UnityEngine;
 
 namespace RacingGame
@@ -13,6 +14,10 @@ namespace RacingGame
         [SerializeField] private float minFOV = 60f;
         [SerializeField] private float maxFOV = 80f;
         [SerializeField] private float fovSpeedThreshold = 30f;
+
+        [Header("Nitro Camera Shake")]
+        [SerializeField] private float nitroShakeStrength = 0.08f;
+        [SerializeField] private float nitroShakeSpeed = 25f;
 
         private Transform followTarget;
         private Rigidbody targetRigidbody;
@@ -74,6 +79,14 @@ namespace RacingGame
                 ref currentVelocity,
                 positionSmoothTime
             );
+
+            bool nitro = followTarget.GetComponent<CarControl>().NitroActive;
+
+            if (nitro)
+            {
+                Vector3 shake = transform.right * Mathf.Sin(Time.time * nitroShakeSpeed) * nitroShakeStrength;
+                transform.position += shake;
+            }
         }
 
         private void HandleRotation()

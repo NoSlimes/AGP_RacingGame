@@ -87,8 +87,8 @@ namespace RacingGame._Game.Scripts.PCG
                 // Make trigger match road width
                 var bc = _triggerGO.GetComponent<BoxCollider>();
                 bc.isTrigger = true;
-                
-                bc.size = new Vector3(roadWidth + extraWidth, triggerSize.y, triggerSize.z);
+
+                bc.size = new Vector3(triggerSize.x, triggerSize.y, triggerSize.z);
                 bc.center = Vector3.zero;
             }
             else

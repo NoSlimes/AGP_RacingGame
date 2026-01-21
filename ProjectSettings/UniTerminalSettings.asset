@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29ddf232660546b40aa040e71c3f6033, type: 3}
   m_Name: 
   m_EditorClassIdentifier: NoSlimes.UniTerminal.Runtime::NoSlimes.Util.UniTerminal.UniTerminalSettings
-  isAutoRebuildEnabled: 1
+  isAutoRebuildEnabled: 0
   includeBuiltInCommands: 0
   includeCheatCommand: 1
   isDetailedLoggingEnabled: 0

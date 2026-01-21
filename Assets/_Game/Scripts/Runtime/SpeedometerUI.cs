@@ -30,7 +30,7 @@ namespace RacingGame
             // update UI text if assigned
             if (kmh_UI != null)
             {
-                kmh_UI.text = $"{speedometer.KilometersPerHour:F1} km/h";
+                kmh_UI.text = $"{speedometer.KilometersPerHour:F1} km/h";       
             }
 
             if (mph_UI != null)

@@ -37,6 +37,7 @@ namespace RacingGame
         public float NitroMultiplier => nitroMultiplier;
         public float NitroDuration => nitroDuration;
         public float NitroCooldown => nitroCooldown;
+        public bool NitroActive => nitroActive;
 
         public void Initialize(Car ownerCar)
         {
