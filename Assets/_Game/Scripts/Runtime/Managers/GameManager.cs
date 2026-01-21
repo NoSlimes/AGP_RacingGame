@@ -133,6 +133,14 @@ namespace RacingGame
             {
                 tickable.DrawDebug();
             }
+
+            foreach (var spawnPoint in carSpawner?.SpawnPositions ?? Array.Empty<(Vector3, Vector3)>())
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawSphere(spawnPoint.spawnPoint, 0.5f);
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawLine(spawnPoint.spawnPoint, spawnPoint.spawnPoint + spawnPoint.trackForward * 2.0f);
+            }
         }
 #endif
 
