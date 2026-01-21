@@ -50,6 +50,14 @@ namespace RacingGame._Game.Scripts.PCG
         public int brakeLeadWaypoints = 4;
         [Tooltip("How many waypoints AFTER a slow corner to mark as Accelerate zone.")] [Min(0)]
         public int accelTailWaypoints = 4;
+        
+        [Header("Reference")]
+        public TrackMeshExtruder meshExtruder;
+        
+        [Header("Track Lines")]
+        public List<Vector3> Centerline = new();
+        public List<Vector3> LeftEdge   = new();
+        public List<Vector3> RightEdge  = new();
 
         [Header("Debug")] 
         public bool drawGizmos = true;
@@ -76,6 +84,7 @@ namespace RacingGame._Game.Scripts.PCG
         void OnEnable()
         {
             if (!splineContainer) splineContainer = GetComponent<SplineContainer>();
+            if (!meshExtruder) meshExtruder = FindAnyObjectByType<TrackMeshExtruder>();
             if (!waypointRoot) waypointRoot = transform;
             Build();
         }
@@ -99,6 +108,10 @@ namespace RacingGame._Game.Scripts.PCG
             Curvatures.Clear();
             TurnAnglesDeg.Clear();
             Zones.Clear();
+            
+            Centerline.Clear();
+            LeftEdge.Clear();
+            RightEdge.Clear();
 
             if (!splineContainer || splineContainer.Splines.Count == 0)
                 return;
@@ -171,6 +184,17 @@ namespace RacingGame._Game.Scripts.PCG
 
                     Waypoints.Add(go.transform);
                 }
+
+                // Center, right and left line
+                float roadHalfWidth = meshExtruder.roadWidth * 0.5f;
+
+                Centerline.Add(worldPos);
+
+                Vector3 right = Vector3.Cross(Vector3.up, localTan).normalized;
+                Vector3 left = -right;
+
+                LeftEdge.Add(worldPos + left * roadHalfWidth);
+                RightEdge.Add(worldPos + right * roadHalfWidth);
             }
             
             int n = WaypointPositions.Count;
