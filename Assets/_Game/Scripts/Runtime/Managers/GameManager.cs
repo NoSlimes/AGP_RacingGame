@@ -126,6 +126,16 @@ namespace RacingGame
             for (int i = 0; i < tickables.Count; i++) tickables[i].FixedTick();
         }
 
+#if DEBUG
+        private void OnDrawGizmos()
+        {
+            foreach (var tickable in tickables)
+            {
+                tickable.DrawDebug();
+            }
+        }
+#endif
+
         private void Update() => StateMachine.Update();
         private void LateUpdate() => StateMachine.LateUpdate();
         private void FixedUpdate() => StateMachine.FixedUpdate();
