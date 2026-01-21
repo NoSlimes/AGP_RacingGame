@@ -20,6 +20,7 @@ namespace RacingGame
         [SerializeField] private Car carPrefab;
         [SerializeField] private int carCount = 2;
         [SerializeField] private bool autoSpawn = true;
+        [SerializeField] private bool spawnPlayerCar = true;
 
         private readonly List<ITickable> tickables = new();
         private CarSpawner carSpawner;
@@ -62,7 +63,7 @@ namespace RacingGame
         {
             var waypointBuilder = FindFirstObjectByType<TrackWaypointBuilder>();
 
-            carSpawner = new(waypointBuilder, carPrefab, carCount);
+            carSpawner = new(waypointBuilder, carPrefab, carCount, spawnPlayerCar);
             carSpawner.OnCarsSpawned += () => OnPlayerCarAssigned?.Invoke(GetPlayerCar());
 
             if (autoSpawn)
