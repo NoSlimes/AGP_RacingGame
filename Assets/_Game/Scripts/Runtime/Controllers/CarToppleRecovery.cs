@@ -6,12 +6,11 @@ namespace RacingGame
     public class CarTopleRecovery : MonoBehaviour, ICarComponent
     {
         [Header("Flip Detection Configuration")]
-        [SerializeField] private float upsideDownDotThreshold = 0.7f;
-        [SerializeField] private float timeBeforeReset = 3f;
+        [SerializeField] private float upsideDownDotThreshold = 0.7f; // Upside down limit
+        [SerializeField] private float timeBeforeReset = 3f; // How long we allow the car to correct itself before we intervine
 
         [Header("Reset Configuration")]
         [SerializeField] private float upwardImpulse = 5f;
-        [SerializeField] private float velociityDamping = 0.5f;
 
         private Car car;
         private float upsideDownTimer;
@@ -46,7 +45,6 @@ namespace RacingGame
             Rigidbody rb = car.Rigidbody;
 
             rb.angularVelocity = Vector3.zero; // Stop spinning
-            rb.linearVelocity *= velociityDamping; // Reduce Speed
 
             rb.AddForce(Vector3.up * upwardImpulse, ForceMode.Impulse); // Lift car to avoid clipping
 
