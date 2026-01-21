@@ -21,16 +21,21 @@ namespace RacingGame
 
     public class Speedometer : MonoBehaviour
     {
-
-        [SerializeField] public Transform targetObject;
-        [SerializeField] public TextMeshProUGUI kmh_UI;
-        [SerializeField] public TextMeshProUGUI mph_UI;
-        [SerializeField] public TextMeshProUGUI ms_UI;
+        // ----------------------
+        //
+        // There is an event in GameManager to get the player car when it spawns. Use that.
+        // Also UI should preferably be event driven and not be referenced directly with SerializeField.
+        //
+        // ----------------------
+        [SerializeField] private Transform targetObject;
+        [SerializeField] private TextMeshProUGUI kmh_UI;
+        [SerializeField] private TextMeshProUGUI mph_UI;
+        [SerializeField] private TextMeshProUGUI ms_UI;
 
         private Rigidbody targetRb;
 
         [Header("Settings")]
-        public bool showDebugLogs = true;
+        [SerializeField] private bool showDebugLogs = true;
 
         private float metersPerSecond;
         private float kilometersPerHour;
@@ -60,8 +65,8 @@ namespace RacingGame
 
             // update UI text if assigned
             if (kmh_UI != null)
-            {                
-                kmh_UI.text = $"{kilometersPerHour:F1} km/h";  
+            {
+                kmh_UI.text = $"{kilometersPerHour:F1} km/h";
             }
 
             if (mph_UI != null)
