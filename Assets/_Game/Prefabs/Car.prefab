@@ -582,7 +582,7 @@ GameObject:
   - component: {fileID: 4456176329557439927}
   m_Layer: 0
   m_Name: Car
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -735,6 +735,9 @@ MonoBehaviour:
   upsideDownDotThreshold: 0.7
   timeBeforeReset: 3
   upwardImpulse: 5
+  checkpointManager: {fileID: 0}
+  killY: -10
+  respawnCooldown: 0.25
 --- !u!114 &4456176329557439927
 MonoBehaviour:
   m_ObjectHideFlags: 0
