@@ -289,8 +289,7 @@ namespace RacingGame._Game.Scripts.PCG
             OnCarPassedCheckpoint?.Invoke(car, checkpointIndex, prev, gateCount);
 
             // Debug
-            Debug.Log($"[CheckpointManager] PASS CP {checkpointIndex} (prev {prev}, expected {expected})");
-
+            //Debug.Log($"[CheckpointManager] PASS CP {checkpointIndex} (prev {prev}, expected {expected})");
         }
 
         public void GetLastCheckpointPose(Car car, out Vector3 pos, out Quaternion rot)

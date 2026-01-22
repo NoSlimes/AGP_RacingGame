@@ -2,6 +2,7 @@ using NoSlimes.UnityUtils.Common;
 using RacingGame._Game.Scripts.PCG;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace RacingGame
@@ -66,7 +67,17 @@ namespace RacingGame
                 }
             }
 
-            OnCarsSpawned?.Invoke();
+            PlayerCar.SetName("Player");
+
+            var aiCars = spawnedCars.Where(c => c != PlayerCar).ToList();
+
+            for (int i = 0; i < aiCars.Count; i++)
+            {
+                var car = aiCars[i];
+                car.SetName($"AI {i}");
+            }
+
+                OnCarsSpawned?.Invoke();
             return spawnedCars.ToArray();
         }
 
