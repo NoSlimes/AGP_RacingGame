@@ -97,6 +97,7 @@ namespace RacingGame
                 skidTrails[i] = Instantiate(skidTrailPrefab, skidParent);
             }
 
+            // Initialice brale-lights
             foreach (var r in brakeLightRenderers)
             {
                 r.material = new Material(r.material);
@@ -237,12 +238,13 @@ namespace RacingGame
                 return;
             }
 
-            bool handBrake = carInput.Inputs.HandBrakeInput;
-            bool brakingInput = carInput.Inputs.MoveInput.y < -0.1f;
-            bool nitroInput = carControl.NitroActive;
+            // car status
+            bool handBrake = carInput.Inputs.HandBrakeInput; // Car hitting the brakes
+            bool brakingInput = carInput.Inputs.MoveInput.y < -0.1f; // Car reversing
+            bool nitroInput = carControl.NitroActive; // Car driiving with active nitro
 
             float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
-            bool engineBraking = Mathf.Abs(carInput.Inputs.MoveInput.y) < 0.1f && Mathf.Abs(forwardSpeed) > 1f;
+            bool engineBraking = Mathf.Abs(carInput.Inputs.MoveInput.y) < 0.1f && Mathf.Abs(forwardSpeed) > 1f; // Car slowing down
 
             bool braking = handBrake || brakingInput /*engineBraking*/;
 
