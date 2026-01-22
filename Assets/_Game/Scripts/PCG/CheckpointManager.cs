@@ -50,10 +50,8 @@ namespace RacingGame._Game.Scripts.PCG
         private void Start()
         {
             if (Application.isPlaying)
-            {
-                AutoFindPlayer();
-                if (_gates.Count == 0) BuildCheckpoints();
-            }
+                if (_gates.Count == 0)
+                    BuildCheckpoints();
         }
 
         private void AutoFindRefs()
@@ -72,14 +70,6 @@ namespace RacingGame._Game.Scripts.PCG
                     _checkpointRoot = go.transform;
                 }
             }
-        }
-
-        private void AutoFindPlayer()
-        {
-            if (_player != null) return;
-
-            var p = GameObject.FindGameObjectWithTag(playerTag);
-            if (p != null) _player = p.transform;
         }
         
         public void BuildCheckpoints()
@@ -177,7 +167,6 @@ namespace RacingGame._Game.Scripts.PCG
             var gate = go.AddComponent<CheckpointGate>();
             gate.manager = this;
             gate.checkpointIndex = checkpointIndex;
-            gate.playerTag = playerTag;
 
             _gates.Add(gate);
         }

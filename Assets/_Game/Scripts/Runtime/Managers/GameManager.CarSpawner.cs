@@ -2,6 +2,7 @@ using NoSlimes.UnityUtils.Common;
 using RacingGame._Game.Scripts.PCG;
 using System;
 using System.Collections.Generic;
+using RacingGame._Game.Scripts.Runtime;
 using UnityEngine;
 
 namespace RacingGame
@@ -49,12 +50,21 @@ namespace RacingGame
                 for (int i = 0; i < spawnedCars.Count; i++)
                 {
                     Car car = spawnedCars[i];
+                    
+                    // Get identity
+                    var identity = car.GetComponent<CarIdentity>();
+                    if (identity == null)
+                        identity = car.gameObject.AddComponent<CarIdentity>();
+                    
                     if (car.TryGetComponent(out CarInputComponent inputComp))
                     {
                         if (i == playerCarIndex && spawnPlayer)
                         {
                             inputComp.SetInputs(new PlayerCarInputs());
                             PlayerCar = car;
+                            
+                            // Player identity
+                            identity.IsPlayerControlled = true;
                         }
                         else
                         {
@@ -64,6 +74,9 @@ namespace RacingGame
 
                             var aiController = new AICarController(centerLine, leftEdge, rightEdge);
                             inputComp.SetInputs(aiController);
+                            
+                            // Ai identity
+                            identity.IsPlayerControlled = false;
                         }
                     }
                 }
