@@ -7,16 +7,16 @@ namespace RacingGame._Game.Scripts.PCG
     [ExecuteAlways]
     public class TrackWaypointBuilder : MonoBehaviour
     {
-        [Header("Input")] 
+        [Header("Input")]
         public SplineContainer splineContainer;
 
-        [Header("Waypoint Output")] 
+        [Header("Waypoint Output")]
         public Transform waypointRoot;
         public string waypointNamePrefix = "WP_";
         public bool spawnGameObjects = true;
         public bool clearOldOnBuild = true;
 
-        [Header("Sampling")] 
+        [Header("Sampling")]
         [Min(0.25f)] public float spacingMeters = 6f;
         public float heightOffset = 0.5f;
         public bool alignRotationToTangent = true;
@@ -29,14 +29,17 @@ namespace RacingGame._Game.Scripts.PCG
         [Tooltip("Friction coefficient used for corner speed approximation. Arcade: 1.2-2.0, Sim: 0.8-1.2")]
         [Range(0.2f, 3.0f)]
         public float frictionMu = 1.4f;
-        [Tooltip("Multiplier on computed corner speed. Lower = more cautious AI.")] 
+        [Tooltip("Multiplier on computed corner speed. Lower = more cautious AI.")]
         [Range(0.3f, 2.0f)]
         public float speedMultiplier = 1.0f;
-        [Tooltip("Minimum recommended speed (m/s).")] [Min(0f)]
+        [Tooltip("Minimum recommended speed (m/s).")]
+        [Min(0f)]
         public float minRecommendedSpeed = 4f;
-        [Tooltip("Maximum recommended speed (m/s).")] [Min(0f)]
+        [Tooltip("Maximum recommended speed (m/s).")]
+        [Min(0f)]
         public float maxRecommendedSpeed = 60f;
-        [Tooltip("Anything with turn angle below this is treated as straight-ish.")] [Range(0f, 30f)]
+        [Tooltip("Anything with turn angle below this is treated as straight-ish.")]
+        [Range(0f, 30f)]
         public float straightAngleThresholdDeg = 3f;
 
         [Header("Brake/Accel Zones")]
@@ -46,24 +49,26 @@ namespace RacingGame._Game.Scripts.PCG
         [Tooltip("If upcoming recommended speed is lower than current by this amount (m/s), mark a brake zone.")]
         [Min(0f)]
         public float brakeDeltaThreshold = 6f;
-        [Tooltip("How many waypoints BEFORE a slow corner to mark as Brake zone.")] [Min(0)]
+        [Tooltip("How many waypoints BEFORE a slow corner to mark as Brake zone.")]
+        [Min(0)]
         public int brakeLeadWaypoints = 4;
-        [Tooltip("How many waypoints AFTER a slow corner to mark as Accelerate zone.")] [Min(0)]
+        [Tooltip("How many waypoints AFTER a slow corner to mark as Accelerate zone.")]
+        [Min(0)]
         public int accelTailWaypoints = 4;
-        
+
         [Header("Reference")]
         public TrackMeshExtruder meshExtruder;
-        
+
         [Header("Track Lines")]
         public List<Vector3> Centerline = new();
-        public List<Vector3> LeftEdge   = new();
-        public List<Vector3> RightEdge  = new();
+        public List<Vector3> LeftEdge = new();
+        public List<Vector3> RightEdge = new();
 
-        [Header("Debug")] 
+        [Header("Debug")]
         public bool drawGizmos = true;
         public float gizmoRadius = 0.35f;
 
-        [Header("Build")] 
+        [Header("Build")]
         public bool rebuild;
 
         public List<Transform> Waypoints { get; private set; } = new List<Transform>();
@@ -76,12 +81,12 @@ namespace RacingGame._Game.Scripts.PCG
         public List<float> TurnAnglesDeg { get; private set; } = new List<float>();
         public List<WaypointZoneType> Zones { get; private set; } = new List<WaypointZoneType>();
 
-        void Reset()
+        private void Reset()
         {
             if (!splineContainer) splineContainer = GetComponent<SplineContainer>();
         }
 
-        void OnEnable()
+        private void OnEnable()
         {
             if (!splineContainer) splineContainer = GetComponent<SplineContainer>();
             if (!meshExtruder) meshExtruder = FindAnyObjectByType<TrackMeshExtruder>();
@@ -89,7 +94,7 @@ namespace RacingGame._Game.Scripts.PCG
             Build();
         }
 
-        void Update()
+        private void Update()
         {
             if (rebuild)
             {
@@ -108,7 +113,7 @@ namespace RacingGame._Game.Scripts.PCG
             Curvatures.Clear();
             TurnAnglesDeg.Clear();
             Zones.Clear();
-            
+
             Centerline.Clear();
             LeftEdge.Clear();
             RightEdge.Clear();
@@ -116,7 +121,7 @@ namespace RacingGame._Game.Scripts.PCG
             if (!splineContainer || splineContainer.Splines.Count == 0)
                 return;
 
-            var spline = splineContainer.Splines[0];
+            Spline spline = splineContainer.Splines[0];
             if (spline.Count < 2)
                 return;
 
@@ -137,7 +142,7 @@ namespace RacingGame._Game.Scripts.PCG
                 var toDelete = new List<Transform>();
                 for (int i = 0; i < waypointRoot.childCount; i++)
                 {
-                    var c = waypointRoot.GetChild(i);
+                    Transform c = waypointRoot.GetChild(i);
                     if (c.name.StartsWith(waypointNamePrefix))
                         toDelete.Add(c);
                 }
@@ -145,24 +150,19 @@ namespace RacingGame._Game.Scripts.PCG
 #if UNITY_EDITOR
                 if (!Application.isPlaying)
                 {
-                    foreach (var t in toDelete) DestroyImmediate(t.gameObject);
+                    foreach (Transform t in toDelete) DestroyImmediate(t.gameObject);
                 }
                 else
 #endif
                 {
-                    foreach (var t in toDelete) Destroy(t.gameObject);
+                    foreach (Transform t in toDelete) Destroy(t.gameObject);
                 }
             }
 
             // Positions + create waypoint objects
             for (int i = 0; i < sampleCount; i++)
             {
-                float t;
-                if (closed)
-                    t = i / (float)sampleCount;
-                else
-                    t = (sampleCount <= 1) ? 0f : i / (float)(sampleCount - 1);
-
+                float t = closed ? i / (float)sampleCount : (sampleCount <= 1) ? 0f : i / (float)(sampleCount - 1);
                 Vector3 localPos = SplineUtility.EvaluatePosition(spline, t);
                 Vector3 localTan = SplineUtility.EvaluateTangent(spline, t);
 
@@ -193,14 +193,14 @@ namespace RacingGame._Game.Scripts.PCG
                 Vector3 right = Vector3.Cross(Vector3.up, localTan).normalized;
                 Vector3 left = -right;
 
-                LeftEdge.Add(worldPos + left * roadHalfWidth);
-                RightEdge.Add(worldPos + right * roadHalfWidth);
+                LeftEdge.Add(worldPos + (left * roadHalfWidth));
+                RightEdge.Add(worldPos + (right * roadHalfWidth));
             }
-            
+
             int n = WaypointPositions.Count;
             if (n < 3)
                 return;
-            
+
             for (int i = 0; i < n; i++)
             {
                 RecommendedSpeeds.Add(maxRecommendedSpeed);
@@ -232,7 +232,7 @@ namespace RacingGame._Game.Scripts.PCG
                 // Compute slope
                 float slopeDeg = 0f;
                 {
-                    Vector3 dir = (pNext - p);
+                    Vector3 dir = pNext - p;
                     float horiz = new Vector3(dir.x, 0f, dir.z).magnitude;
                     if (horiz > 0.0001f)
                         slopeDeg = Mathf.Atan2(dir.y, horiz) * Mathf.Rad2Deg;
@@ -291,7 +291,7 @@ namespace RacingGame._Game.Scripts.PCG
             }
         }
 
-        void MarkBrakeAndAccelZones(bool closed)
+        private void MarkBrakeAndAccelZones(bool closed)
         {
             int n = WaypointPositions.Count;
             if (n < 3) return;
@@ -358,23 +358,23 @@ namespace RacingGame._Game.Scripts.PCG
             }
         }
 
-        Vector3 FlattenIfNeeded(Vector3 v)
+        private Vector3 FlattenIfNeeded(Vector3 v)
         {
             if (!usePlanarTurn) return v;
             v.y = 0f;
             return v.sqrMagnitude > 0.000001f ? v.normalized : Vector3.forward;
         }
 
-        void ApplyHintToWaypointGo(int index, float angleDeg, float curvature, float radius, float recSpeed,
+        private void ApplyHintToWaypointGo(int index, float angleDeg, float curvature, float radius, float recSpeed,
             WaypointZoneType zone, float slopeDeg)
         {
             if (!spawnGameObjects) return;
             if (index < 0 || index >= Waypoints.Count) return;
 
-            var t = Waypoints[index];
+            Transform t = Waypoints[index];
             if (!t) return;
 
-            var hint = t.GetComponent<WaypointSpeedHint>();
+            WaypointSpeedHint hint = t.GetComponent<WaypointSpeedHint>();
             if (!hint) hint = t.gameObject.AddComponent<WaypointSpeedHint>();
 
             hint.turnAngleDeg = angleDeg;
@@ -388,7 +388,7 @@ namespace RacingGame._Game.Scripts.PCG
                 hint.slopeDeg = slopeDeg;
         }
 
-        void OnDrawGizmos()
+        private void OnDrawGizmos()
         {
             if (!drawGizmos || WaypointPositions == null || WaypointPositions.Count == 0)
                 return;
@@ -400,7 +400,7 @@ namespace RacingGame._Game.Scripts.PCG
                 // Read from WaypointSpeedHint component
                 if (spawnGameObjects && Waypoints != null && i < Waypoints.Count && Waypoints[i] != null)
                 {
-                    var hint = Waypoints[i].GetComponent<WaypointSpeedHint>();
+                    WaypointSpeedHint hint = Waypoints[i].GetComponent<WaypointSpeedHint>();
                     if (hint != null)
                     {
                         gizmoColor = ZoneToColor(hint.zone);
@@ -427,7 +427,7 @@ namespace RacingGame._Game.Scripts.PCG
             Gizmos.color = Color.white; // reset
         }
 
-        Color ZoneToColor(WaypointZoneType zone)
+        private Color ZoneToColor(WaypointZoneType zone)
         {
             // Color for zones
             switch (zone)

@@ -1,9 +1,14 @@
 using NoSlimes.Logging;
 using RacingGame._Game.Scripts.PCG;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
+using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Splines;
 
 namespace RacingGame
 {
@@ -15,6 +20,7 @@ namespace RacingGame
         private readonly bool autoSpawnCars = true;
 
         private TrackWaypointBuilder waypointBuilder;
+        private BezierTrackGenerator bezierTrackGenerator;
 
         public override void Enter()
         {
@@ -31,7 +37,8 @@ namespace RacingGame
                     SpawnCars();
             }
 
-            waypointBuilder = Object.FindAnyObjectByType<TrackWaypointBuilder>();
+            waypointBuilder = UnityEngine.Object.FindAnyObjectByType<TrackWaypointBuilder>();
+            bezierTrackGenerator = UnityEngine.Object.FindAnyObjectByType<BezierTrackGenerator>();
         }
 
         public override void Exit()
@@ -44,6 +51,8 @@ namespace RacingGame
         public override void Update()
         {
             GameManager.UpdateTickables();
+
+            TickCarPlacements();
         }
 
         public override void LateUpdate()
@@ -64,13 +73,13 @@ namespace RacingGame
         private void SpawnCars()
         {
             GameManager.StartCoroutine(SpawnCoroutine());
-            SetupLaps();
         }
 
         private IEnumerator SpawnCoroutine()
         {
             yield return null; // Yield one frame to ensure everything is initialized
             GameManager.CarSpawner.SpawnCars();
+            SetupLaps();
         }
     }
 
@@ -78,6 +87,15 @@ namespace RacingGame
     {
         private readonly Dictionary<Car, int> carLaps = new();
         private readonly Dictionary<Car, int> checkPointsHitThisLap = new();
+
+        private readonly List<Car> carPlacements = new();
+
+        public IReadOnlyList<Car> CarPlacements => carPlacements;
+
+        public event Action<IReadOnlyList<Car>> OnCarPlacementsChanged;
+        public event Action<Car, int> OnCarLapped;
+
+        private int lastCheckFrame;
 
         private void SetupLaps()
         {
@@ -87,18 +105,60 @@ namespace RacingGame
                 carLaps[car] = 0;
         }
 
+        private void TickCarPlacements()
+        {
+            if (Time.frameCount - lastCheckFrame < 10) 
+                return;
+            lastCheckFrame = Time.frameCount;
+
+            var splineContainer = bezierTrackGenerator.splineContainer;
+            if (splineContainer == null) return;
+
+            var spline = splineContainer.Spline;
+            float splineLength = spline.GetLength();
+
+            foreach (var car in GameManager.AllCars)
+            {
+                float3 localPos = splineContainer.transform.InverseTransformPoint(car.transform.position);
+                SplineUtility.GetNearestPoint(spline, localPos, out _, out float t);
+
+                float distanceAlongSpline = spline.ConvertIndexUnit(t, PathIndexUnit.Normalized, PathIndexUnit.Distance);
+
+                // Safety check for dictionary keys
+                int laps = carLaps.TryGetValue(car, out int l) ? l : 0;
+                car.ProgressScore = (laps * splineLength) + distanceAlongSpline;
+
+                if (!carPlacements.Contains(car))
+                    carPlacements.Add(car);
+            }
+
+            var oldOrder = carPlacements.ToList();
+            carPlacements.Sort((a, b) => b.ProgressScore.CompareTo(a.ProgressScore));
+
+            if (!carPlacements.SequenceEqual(oldOrder))
+            {
+                OnCarPlacementsChanged?.Invoke(carPlacements);
+            }
+        }
+
         private void OnCarPassedCheckpoint(Car car, int newCheckpointIdx, int lastCheckpointIdx, int totalCheckpointCount)
         {
             if (!carLaps.ContainsKey(car)) carLaps[car] = 0;
-            if (!checkPointsHitThisLap.ContainsKey(car)) checkPointsHitThisLap[car] = 1;
+            if (!checkPointsHitThisLap.ContainsKey(car)) checkPointsHitThisLap[car] = 0;
 
             checkPointsHitThisLap[car]++;
 
-            if (lastCheckpointIdx >= totalCheckpointCount - 3 && checkPointsHitThisLap[car] > totalCheckpointCount / 2 && newCheckpointIdx == 0)
+            if (lastCheckpointIdx >= totalCheckpointCount - 3 &&
+                checkPointsHitThisLap[car] > totalCheckpointCount / 2 &&
+                newCheckpointIdx == 0)
             {
                 carLaps[car]++;
+                int currentLap = carLaps[car];
+
                 checkPointsHitThisLap[car] = 1;
-                DLogger.Log($"{car.name} completed lap {carLaps[car]}", GameManager, LogCategory);
+
+                DLogger.Log($"{car.name} completed lap {currentLap}", GameManager, LogCategory);
+                OnCarLapped?.Invoke(car, currentLap);
             }
         }
     }

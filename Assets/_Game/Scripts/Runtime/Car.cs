@@ -16,6 +16,9 @@ namespace RacingGame
 
         public Rigidbody Rigidbody { get; private set; }
 
+        public float ProgressScore { get; set; }
+        public string CarName { get; private set; }
+
         public T GetCarComponent<T>()
         {
             return carComponentLookup.TryGetValue(typeof(T), out List<ICarComponent> cL) ? (T)cL.First() : default;
@@ -78,6 +81,12 @@ namespace RacingGame
                 ICarComponent c = carComponents[i];
                 c.FixedTickComponent();
             }
+        }
+
+        public void SetName(string name)
+        {
+            CarName = name;
+            gameObject.name = $"Car {name}";
         }
     }
 
