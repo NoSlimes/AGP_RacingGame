@@ -32,13 +32,12 @@ namespace RacingGame._Game.Scripts.PCG
         [Min(0)] public int planeStartKnotCount = 2;
         public bool usePlaneStartOnPlay = true;
 
-        [Header("Auto Build Dependencies")]
+        [Header("Reference")] 
         public TrackMeshExtruder meshExtruder;
         public TrackWaypointBuilder waypointBuilder;
         public CheckpointManager checkpointManager;
-
-        [Header("Reference")] 
         public StartFinishBuilder startFinishBuilder;
+        public TrackWallBuilder wallBuilder;
 
         private void Reset()
         {
@@ -103,10 +102,13 @@ namespace RacingGame._Game.Scripts.PCG
         {
             Generate();
 
-            // Rebuild road + waypoints + goalline
+            // Rebuild
             if (meshExtruder)
                 meshExtruder.Build();
 
+            if (wallBuilder)
+                wallBuilder.Build();
+            
             if (waypointBuilder)
                 waypointBuilder.Build();
             
