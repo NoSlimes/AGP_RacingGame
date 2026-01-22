@@ -25,9 +25,9 @@ namespace RacingGame
 
         [Header("Brake Lights")]
         [SerializeField] private Renderer[] brakeLightRenderers;
-        [SerializeField] private Color brakeColorOn = Color.red * 2f;
-        [SerializeField] private Color brakeColorOff = Color.black * 10f;
-        [SerializeField] private Color NitroActiveColor = Color.yellow * 10f;
+        [SerializeField] private Color brakeColorOn = Color.red * 2f; // Color of brake lights
+        [SerializeField] private Color brakeColorOff = Color.black * 10f; // Color of light when neutral
+        [SerializeField] private Color NitroActiveColor = Color.yellow * 10f; // Color of brake lights while nitro boosting
         [SerializeField] private float brakeLightFadeSpeed = 10f;
         private float brakeLightIntensity;
         private Color currentColor;
