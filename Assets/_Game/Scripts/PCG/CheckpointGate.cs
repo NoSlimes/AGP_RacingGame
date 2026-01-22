@@ -8,9 +8,6 @@ namespace RacingGame._Game.Scripts.PCG
         [HideInInspector] public CheckpointManager manager;
         [HideInInspector] public int checkpointIndex;
 
-        [Header("Filter")]
-        public string playerTag = "Player";
-
         private void Reset()
         {
             var box = GetComponent<BoxCollider>();
@@ -19,14 +16,20 @@ namespace RacingGame._Game.Scripts.PCG
 
         private void OnTriggerEnter(Collider other)
         {
-            Transform root = other.attachedRigidbody ? other.attachedRigidbody.transform : other.transform.root;
+            if (manager == null) return;
+            
+            Rigidbody rb = other.attachedRigidbody;
+            if (rb == null) return;
 
-            if (!string.IsNullOrEmpty(playerTag) && !root.CompareTag(playerTag))
+            // Find player car
+            var identity = rb.GetComponent<RacingGame._Game.Scripts.Runtime.CarIdentity>();
+            if (identity == null) return;
+
+            if (!identity.IsPlayerControlled)
                 return;
 
-            if (manager == null) return;
-
-            manager.NotifyCheckpointPassed(checkpointIndex, root);
+            manager.NotifyCheckpointPassed(checkpointIndex, rb.transform);
         }
+
     }
 }
