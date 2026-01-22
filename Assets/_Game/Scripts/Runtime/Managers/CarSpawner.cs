@@ -36,7 +36,7 @@ namespace RacingGame
 
         public Car[] SpawnCars()
         {
-            foreach (var (spawnPoint, trackForward) in spawnPositions)
+            foreach ((Vector3 spawnPoint, Vector3 trackForward) in spawnPositions)
             {
                 var forwardRotation = Quaternion.LookRotation(trackForward, Vector3.up);
 
@@ -57,9 +57,9 @@ namespace RacingGame
                     }
                     else
                     {
-                        var centerLine = waypointBuilder.Centerline;
-                        var leftEdge = waypointBuilder.LeftEdge;
-                        var rightEdge = waypointBuilder.RightEdge;
+                        List<Vector3> centerLine = waypointBuilder.Centerline;
+                        List<Vector3> leftEdge = waypointBuilder.LeftEdge;
+                        List<Vector3> rightEdge = waypointBuilder.RightEdge;
 
                         var aiController = new AICarController(centerLine, leftEdge, rightEdge);
                         inputComp.SetInputs(aiController);
@@ -67,17 +67,18 @@ namespace RacingGame
                 }
             }
 
-            PlayerCar.SetName("Player");
+            if (PlayerCar)
+                PlayerCar.SetName("Player");
 
             var aiCars = spawnedCars.Where(c => c != PlayerCar).ToList();
 
             for (int i = 0; i < aiCars.Count; i++)
             {
-                var car = aiCars[i];
+                Car car = aiCars[i];
                 car.SetName($"AI {i}");
             }
 
-                OnCarsSpawned?.Invoke();
+            OnCarsSpawned?.Invoke();
             return spawnedCars.ToArray();
         }
 
@@ -90,9 +91,9 @@ namespace RacingGame
         }
         private (Vector3, Vector3) GetSpawnPosition(int index)
         {
-            var center = waypointBuilder.Centerline;
-            var left = waypointBuilder.LeftEdge;
-            var right = waypointBuilder.RightEdge;
+            List<Vector3> center = waypointBuilder.Centerline;
+            List<Vector3> left = waypointBuilder.LeftEdge;
+            List<Vector3> right = waypointBuilder.RightEdge;
             int totalWaypoints = center.Count;
 
             float distanceBetweenPoints = Vector3.Distance(center[^1], center[^2]);
@@ -113,16 +114,7 @@ namespace RacingGame
             Vector3 leftPt = left[^backOffset];
             Vector3 rightPt = right[^backOffset];
 
-            Vector3 forward;
-            if (backOffset > 1)
-            {
-                forward = (center[^(backOffset - 1)] - centerPt).normalized;
-            }
-            else
-            {
-                forward = (centerPt - center[^(backOffset + 1)]).normalized;
-            }
-
+            Vector3 forward = backOffset > 1 ? (center[^(backOffset - 1)] - centerPt).normalized : (centerPt - center[^(backOffset + 1)]).normalized;
             if (forward == Vector3.zero) forward = carPrefab.transform.forward;
 
             Vector3 spawnPoint = isLeftLane
@@ -140,7 +132,7 @@ namespace RacingGame
             for (int i = 0; i < spawnedCars.Count; i++)
             {
                 Car car = spawnedCars[i];
-                var (spawnPoint, trackForward) = spawnPositions[i];
+                (Vector3 spawnPoint, Vector3 trackForward) = spawnPositions[i];
 
                 if (car.TryGetComponent(out Rigidbody rb))
                 {
