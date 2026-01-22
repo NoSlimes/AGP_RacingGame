@@ -35,6 +35,7 @@ namespace RacingGame._Game.Scripts.PCG
         [Header("Auto Build Dependencies")]
         public TrackMeshExtruder meshExtruder;
         public TrackWaypointBuilder waypointBuilder;
+        public CheckpointManager checkpointManager;
 
         [Header("Reference")] 
         public StartFinishBuilder startFinishBuilder;
@@ -108,7 +109,10 @@ namespace RacingGame._Game.Scripts.PCG
 
             if (waypointBuilder)
                 waypointBuilder.Build();
-
+            
+            if (checkpointManager) 
+                checkpointManager.BuildCheckpoints();
+            
             if (startFinishBuilder)
                 startFinishBuilder.TryBuild();
         }

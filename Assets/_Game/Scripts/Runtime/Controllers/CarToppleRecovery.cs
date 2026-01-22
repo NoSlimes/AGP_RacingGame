@@ -12,6 +12,12 @@ namespace RacingGame
         [Header("Reset Configuration")]
         [SerializeField] private float upwardImpulse = 5f;
 
+        [Header("Respawn")]
+        public RacingGame._Game.Scripts.PCG.CheckpointManager checkpointManager;
+        public float killY = -10f;
+        public float respawnCooldown = 0.25f;
+        private float _lastRespawnTime;
+
         private Car car;
         private float upsideDownTimer;
 
@@ -38,7 +44,56 @@ namespace RacingGame
                 }
             }
             else upsideDownTimer = 0f;
+
+            if (transform.position.y < killY)
+                TryRespawn();
         }
+
+        public void TryRespawn()
+        {
+            if(Time.time - _lastRespawnTime < respawnCooldown)
+                return;
+            _lastRespawnTime = Time.time;
+            RespawnToLastCheckpoint();
+        }
+
+        public void RespawnToLastCheckpoint()
+        {
+            if (!checkpointManager)
+                checkpointManager = FindAnyObjectByType<RacingGame._Game.Scripts.PCG.CheckpointManager>();
+
+            if (!checkpointManager)
+            {
+                Debug.LogWarning("[Player] No CheckpointManager found for respawn.");
+                return;
+            }
+
+            checkpointManager.GetLastCheckpointPose(transform, out var pos, out var rot);
+
+            // Rigidbody reset
+            if (TryGetComponent<Rigidbody>(out var rb))
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.position = pos;
+                rb.rotation = rot;
+                return;
+            }
+
+            // CharacterController reset
+            var cc = GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                cc.enabled = false;
+                transform.SetPositionAndRotation(pos, rot);
+                cc.enabled = true;
+                return;
+            }
+
+            // Fallback
+            transform.SetPositionAndRotation(pos, rot);
+        }
+
 
         private void ResetCarRotasion()
         {

@@ -358,6 +358,11 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!23 &37903391 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1981416905927278722, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+  m_PrefabInstance: {fileID: 2072517151}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &139983655 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -111975652298233050, guid: 2ad71c09e9fdd14408a17c8705e7f5ea, type: 3}
@@ -480,6 +485,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!23 &649900412 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2226209422881402965, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+  m_PrefabInstance: {fileID: 2072517151}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &744826166
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -703,6 +713,8 @@ MonoBehaviour:
   maxSpeed: 20
   steeringRange: 30
   steeringRangeAtMaxSpeed: 10
+  antiRollStiffness: 5000
+  downforce: 50
   nitroMultiplier: 0
   nitroDuration: 0
   nitroCooldown: 0
@@ -1407,9 +1419,41 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: brakeColorOn.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: brakeColorOff.a
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: brakeColorOff.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: brakeColorOff.g
+      value: 0.64705884
+      objectReference: {fileID: 0}
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: brakeColorOff.r
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: brakeLightRenderers.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: 'brakeLightRenderers.Array.data[0]'
+      value: 
+      objectReference: {fileID: 649900412}
+    - target: {fileID: -8639534672835630653, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
+      propertyPath: 'brakeLightRenderers.Array.data[1]'
+      value: 
+      objectReference: {fileID: 37903391}
     - target: {fileID: 199244956314484332, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -0.76
       objectReference: {fileID: 0}
     - target: {fileID: 199244956314484332, guid: f5dc93df4e97b6146a573c7c0e7ab6be, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1553,7 +1597,7 @@ Transform:
   m_GameObject: {fileID: 2122765684}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.8, y: 1.9, z: -5.7}
+  m_LocalPosition: {x: -0.01, y: 2.71, z: -7.08}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
