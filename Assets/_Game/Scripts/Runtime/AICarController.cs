@@ -76,6 +76,7 @@ namespace RacingGame
         bool boxedIn;
         bool ShouldBoost;
         bool Stuck;
+        float StuckTimer;
         float overTakeSide;
         private float sharpTurnCurvature = 0.08f;
         private Transform thisTransform;
@@ -260,8 +261,10 @@ namespace RacingGame
             ThrottleOrBrake();
             UpdateStuck();
 
-            if (Stuck)
+            if (StuckTimer > 0)
             {
+                StuckTimer -= Time.deltaTime;
+
                 throttle = -0.6f;
                 brake = false;
                 steerInput = -Mathf.Sign(steerInput);
@@ -274,7 +277,9 @@ namespace RacingGame
 
         void UpdateStuck()
         {
-            bool tryingToMove = Mathf.Abs(throttle) > 0.3f && Mathf.Abs(steerInput) > 0.01f;
+            
+            
+            bool tryingToMove = Mathf.Abs(throttle) > 0.01f && Mathf.Abs(steerInput) > 0.01f;
 
             bool notMoving = currentSpeed < 1.0f;
 
@@ -288,6 +293,10 @@ namespace RacingGame
             }
 
             Stuck = StuckTime > 1.2f;
+            if (Stuck && StuckTimer <= 0.001f)
+            { 
+                StuckTimer = 2f; 
+            }
         }
 
         public void GetSteering()
