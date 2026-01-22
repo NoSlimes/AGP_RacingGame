@@ -12,9 +12,6 @@ namespace RacingGame
         [SerializeField, Range(0f, 5f)] private float maxPitch = 2.5f;
         [SerializeField, Range(0f, 1f)] private float minVolume = 0.4f;
         [SerializeField, Range(0f, 1f)] private float maxVolume = 1.0f;
-        [SerializeField] private float pitchSmoothSpeed = 10f;
-        [SerializeField] private float volumeSmoothSpeed = 5f;
-        [SerializeField] private float rpmFlutuation = 0.05f;
 
         [Header("Audio: Tire Slipping")]
         [SerializeField] private AudioSource slipAudioSource;
