@@ -3,6 +3,7 @@
     "com.noslimes.dlog": "https://github.com/NoSlimes/DLog.git",
     "com.noslimes.uniterminal": "https://github.com/NoSlimes/UniTerminal.git",
     "com.noslimes.unityutils": "https://github.com/NoSlimes/UnityUtils.git",
+    "com.unity.2d.sprite": "1.0.0",
     "com.unity.ai.navigation": "2.0.9",
     "com.unity.cinemachine": "3.1.5",
     "com.unity.collab-proxy": "2.10.2",

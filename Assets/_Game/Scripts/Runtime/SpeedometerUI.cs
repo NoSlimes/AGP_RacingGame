@@ -9,6 +9,16 @@ namespace RacingGame
         [SerializeField] private TextMeshProUGUI mph_UI;
         [SerializeField] private TextMeshProUGUI ms_UI;
 
+        public float maxSpeed = 200f; // The max speed on your gauge
+
+        [Header("UI Elements")]
+        public TextMeshProUGUI digitalText;
+        public RectTransform needle; // The needle's Transform
+
+        [Header("Needle Settings")]
+        public float zeroSpeedAngle = 90f; // Angle when speed is 0
+        public float maxSpeedAngle = -90f;  // Angle when speed is max
+
         private Speedometer speedometer;
 
         private void OnEnable() => GameManager.Instance.OnPlayerCarAssigned += HandlePlayerCarAssigned;
@@ -26,6 +36,20 @@ namespace RacingGame
         {
             if(speedometer == null) 
                 return;
+
+            if (digitalText != null)
+            {
+                digitalText.text = $"{speedometer.KilometersPerHour:F1} km/h";
+                // digitalText.text = speedometer.MetersPerSecond.ToString("F0");
+            }
+
+            if (needle !=null)
+            {
+                float speedNormalized = speedometer.KilometersPerHour / maxSpeed;
+                float targetAngle = Mathf.Lerp(zeroSpeedAngle, maxSpeedAngle, speedNormalized);
+
+                needle.eulerAngles = new Vector3(0, 0, targetAngle);
+            }
 
             // update UI text if assigned
             if (kmh_UI != null)
