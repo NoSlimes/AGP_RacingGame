@@ -18,15 +18,12 @@ namespace RacingGame._Game.Scripts.PCG
         {
             if (manager == null) return;
             
-            Rigidbody rb = other.attachedRigidbody;
+            var rb = other.attachedRigidbody;
             if (rb == null) return;
 
-            // Find player car
+            // Find car
             var identity = rb.GetComponent<RacingGame._Game.Scripts.Runtime.CarIdentity>();
             if (identity == null) return;
-
-            if (!identity.IsPlayerControlled)
-                return;
 
             manager.NotifyCheckpointPassed(checkpointIndex, rb.transform);
         }

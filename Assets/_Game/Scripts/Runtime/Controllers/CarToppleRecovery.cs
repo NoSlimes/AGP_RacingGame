@@ -68,7 +68,7 @@ namespace RacingGame
                 return;
             }
 
-            checkpointManager.GetLastCheckpointPose(out var pos, out var rot);
+            checkpointManager.GetLastCheckpointPose(transform, out var pos, out var rot);
 
             // Rigidbody reset
             if (TryGetComponent<Rigidbody>(out var rb))

@@ -6,6 +6,19 @@ namespace RacingGame._Game.Scripts.PCG
     [ExecuteAlways]
     public class CheckpointManager : MonoBehaviour
     {
+        [System.Serializable]
+        public class CarCheckpointState
+        {
+            public int lastCheckpointIndex = 0;
+            public int currentLap = 0;
+            public Vector3 lastRespawnPos;
+            public Quaternion lastRespawnRot;
+            public float lastWrongCheckpointTime = -999f;
+        }
+        
+        public float wrongCheckpointCooldown = 0.5f;
+        private readonly Dictionary<int, CarCheckpointState> _stateByCar = new();
+
         [Header("PCG Input")] 
         public TrackWaypointBuilder waypointBuilder;
         public TrackMeshExtruder meshExtruder;
@@ -139,6 +152,31 @@ namespace RacingGame._Game.Scripts.PCG
             Debug.Log($"[CheckpointManager] Built {_gates.Count} checkpoints from {count} waypoints.");
         }
 
+        private CarCheckpointState GetState(Transform carRoot)
+        {
+            int id = carRoot.GetInstanceID();
+            if (!_stateByCar.TryGetValue(id, out var s))
+            {
+                s = new CarCheckpointState();
+                _stateByCar[id] = s;
+
+                // initialize to checkpoint 0
+                if (_gates.Count > 0 && _gates[0] != null)
+                {
+                    var t = _gates[0].transform;
+                    s.lastRespawnPos = t.position + Vector3.up * respawnUpOffset;
+                    s.lastRespawnRot = t.rotation;
+                }
+                else
+                {
+                    s.lastRespawnPos = carRoot.position;
+                    s.lastRespawnRot = carRoot.rotation;
+                }
+            }
+
+            return s;
+        }
+
         private void CreateGateAtWaypoint(
             int waypointIndex,
             int checkpointIndex,
@@ -203,62 +241,59 @@ namespace RacingGame._Game.Scripts.PCG
 
         public void NotifyCheckpointPassed(int checkpointIndex, Transform who)
         {
-            if (_player == null && who != null) _player = who;
+            if (who == null) return;
+            if (_gates.Count <= 0) return;
+
+            var s = GetState(who);
 
             int gateCount = _gates.Count;
-            if (gateCount <= 0) return;
-
-            int prev = LastCheckpointIndex;
+            int prev = s.lastCheckpointIndex;
             int expected = (prev + 1) % gateCount;
-            
+
             if (enforceForwardProgress)
             {
-                if (checkpointIndex != expected)
+                if (checkpointIndex != expected && checkpointIndex != prev)
                 {
                     // Prevent going backwards
-                    if (respawnIfGoingBackwards && checkpointIndex != prev)
+                    if (respawnIfGoingBackwards && Time.time - s.lastWrongCheckpointTime > wrongCheckpointCooldown)
                     {
                         // Respawn them to the last valid checkpoint
-                        Debug.Log($"[CheckpointManager] Wrong checkpoint {checkpointIndex}, expected {expected}. Respawn!");
-                        
-                        // Option A: do nothing here and let PlayerController call respawn
+                        s.lastWrongCheckpointTime = Time.time;
+
+                        // Respawn only specific car
                         var recovery = who.GetComponent<CarTopleRecovery>();
                         if (recovery != null)
                             recovery.TryRespawn();
-                        
-                        // Option B: if you have recovery script, call it:
-                        // who.GetComponent<CarToppleRecovery>()?.ForceRespawnNow();
                     }
 
                     return;
                 }
             }
-            
-            LastCheckpointIndex = checkpointIndex;
+
+            s.lastCheckpointIndex = checkpointIndex;
 
             // Lap count
             if (checkpointIndex == 0 && prev == gateCount - 1)
             {
-                CurrentLap++;
+                s.currentLap++;
                 Debug.Log($"[CheckpointManager] LAP {CurrentLap} complete!");
             }
 
             // Update respawn pos
             var t = _gates[checkpointIndex].transform;
-            _lastRespawnPos = t.position + Vector3.up * respawnUpOffset;
-            _lastRespawnRot = t.rotation;
+            s.lastRespawnPos = t.position + Vector3.up * respawnUpOffset;
+            s.lastRespawnRot = t.rotation;
 
             if (flattenRespawnRotation)
             {
-                var fwd = _lastRespawnRot * Vector3.forward;
+                var fwd = s.lastRespawnRot * Vector3.forward;
                 fwd.y = 0f;
                 if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
-                _lastRespawnRot = Quaternion.LookRotation(fwd.normalized, Vector3.up);
+                s.lastRespawnRot = Quaternion.LookRotation(fwd.normalized, Vector3.up);
             }
 
             Debug.Log($"[CheckpointManager] PASS CP {checkpointIndex} (prev {prev}, expected {expected})");
         }
-
 
         private void UpdateRespawnPoseFromGateIndex(int checkpointIndex, int totalWaypointCount, List<Transform> wps,
             List<Vector3> pos)
@@ -285,10 +320,11 @@ namespace RacingGame._Game.Scripts.PCG
             _lastRespawnRot = Quaternion.LookRotation(forward, Vector3.up);
         }
 
-        public void GetLastCheckpointPose(out Vector3 pos, out Quaternion rot)
+        public void GetLastCheckpointPose(Transform carRoot, out Vector3 pos, out Quaternion rot)
         {
-            pos = _lastRespawnPos;
-            rot = _lastRespawnRot;
+            var s = GetState(carRoot);
+            pos = s.lastRespawnPos;
+            rot = s.lastRespawnRot;
         }
 
         private void OnDrawGizmos()
