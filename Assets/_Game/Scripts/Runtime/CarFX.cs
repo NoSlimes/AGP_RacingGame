@@ -30,8 +30,10 @@ namespace RacingGame
         [SerializeField] private Renderer[] brakeLightRenderers;
         [SerializeField] private Color brakeColorOn = Color.red * 2f;
         [SerializeField] private Color brakeColorOff = Color.black * 10f;
+        [SerializeField] private Color NitroActiveColor = Color.yellow * 10f;
         [SerializeField] private float brakeLightFadeSpeed = 10f;
         private float brakeLightIntensity;
+        private Color currentColor;
 
         private CarControl carControl;
         private CarInputComponent carInput;
@@ -232,14 +234,15 @@ namespace RacingGame
 
         private void UpdateBrakeLights()
         {
-            if (carInput == null || rb == null)
+            if (carInput == null || rb == null || carControl == null)
             {
-                Debug.LogError("CarFX: carInput or rb is null");
+                Debug.LogError("CarFX: carInput, rb or carControl is null");
                 return;
             }
 
             bool handBrake = carInput.Inputs.HandBrakeInput;
             bool brakingInput = carInput.Inputs.MoveInput.y < -0.1f;
+            bool nitroInput = carControl.NitroActive;
 
             float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
             bool engineBraking = Mathf.Abs(carInput.Inputs.MoveInput.y) < 0.1f && Mathf.Abs(forwardSpeed) > 1f;
@@ -249,9 +252,20 @@ namespace RacingGame
             float target = braking ? 1f : 0f;
             brakeLightIntensity = Mathf.Lerp(brakeLightIntensity, target, Time.fixedDeltaTime * brakeLightFadeSpeed);
 
+            // Determine brake-light color
+            if (nitroInput)
+            {
+                currentColor = NitroActiveColor;
+            }
+            else
+            {
+                currentColor = Color.Lerp(brakeColorOff, brakeColorOn, brakeLightIntensity);
+            }
+
+            // Apply Color
             foreach (var r in brakeLightRenderers)
             {
-                r.material.SetColor("_EmissionColor", Color.Lerp(brakeColorOff, brakeColorOn, brakeLightIntensity));
+                r.material.SetColor("_EmissionColor", currentColor);
             }
 
         }
