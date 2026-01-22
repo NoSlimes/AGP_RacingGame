@@ -23,13 +23,13 @@ namespace RacingGame
         [SerializeField] private bool spawnPlayerCar = true;
 
         private readonly List<ITickable> tickables = new();
-        private CarSpawner carSpawner;
 
+        public CarSpawner CarSpawner { get; private set; }
         public StateMachine StateMachine { get; private set; }
+        public CheckpointManager CheckpointManager { get; private set; }
         public bool IsPaused => StateMachine?.CurrentState is PauseState;
 
         public event Action<Car> OnPlayerCarAssigned;
-
         public event StateMachine.StateChangedDelegate StateChanged
         {
             add => StateMachine.OnStateChanged += value;
@@ -47,11 +47,13 @@ namespace RacingGame
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
+            CheckpointManager = FindFirstObjectByType<CheckpointManager>();
             StateMachine = new StateMachine(new List<StateMachine.State>
             {
-                new GameState(this, stateMachineLogCategory),
+                new GameState(this, stateMachineLogCategory, autoSpawn),
                 new PauseState(this, stateMachineLogCategory)
-            }, stateMachineLogCategory);
+            }, logCategory: stateMachineLogCategory);
+
 
             IEnumerable<ITickable> initialTickables = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).OfType<ITickable>();
             foreach (ITickable t in initialTickables) RegisterTickable(t);
@@ -63,32 +65,24 @@ namespace RacingGame
         {
             var waypointBuilder = FindFirstObjectByType<TrackWaypointBuilder>();
 
-            carSpawner = new(waypointBuilder, carPrefab, carCount, spawnPlayerCar);
-            carSpawner.OnCarsSpawned += () =>
+            CarSpawner = new(waypointBuilder, carPrefab, carCount, spawnPlayerCar);
+            CarSpawner.OnCarsSpawned += () =>
             {
-                var playerCar = GetPlayerCar();
-                if (playerCar != null)
+                if (PlayerCar != null)
                 {
                     DLogger.LogDev("Player car assigned.", category: logCategory);
 
-                    OnPlayerCarAssigned?.Invoke(playerCar);
+                    OnPlayerCarAssigned?.Invoke(PlayerCar);
                 }
             };
 
-            if (autoSpawn)
-                StartCoroutine(SpawnCoroutine());
-        }
-
-        private IEnumerator SpawnCoroutine()
-        {
-            yield return null; // Yield one frame to ensure everything is initialized
-            carSpawner.SpawnCars();
+            StateMachine.ChangeState<GameState>();
         }
 
         [ConsoleCommand("spawn_cars", "Spawns cars into the scene.")]
         private void SpawnCars(CommandResponseDelegate response)
         {
-            Car[] spawnedCars = carSpawner.SpawnCars();
+            Car[] spawnedCars = CarSpawner.SpawnCars();
             response($"Spawned {spawnedCars.Length} cars into the scene.");
         }
 
@@ -108,8 +102,11 @@ namespace RacingGame
             }
         }
 
-        public Car GetPlayerCar() => carSpawner?.PlayerCar;
-        public Car[] GetAllCars() => carSpawner?.SpawnedCars.ToArray() ?? Array.Empty<Car>();
+        [Obsolete("Use GameManager.AllCars instead")]
+        public Car[] GetAllCars() => CarSpawner?.SpawnedCars.ToArray() ?? Array.Empty<Car>();
+
+        public IReadOnlyList<Car> AllCars => CarSpawner?.SpawnedCars;
+        public Car PlayerCar => CarSpawner?.PlayerCar;
 
         public void UpdateTickables()
         {
@@ -134,7 +131,7 @@ namespace RacingGame
                 tickable.DrawDebug();
             }
 
-            foreach (var spawnPoint in carSpawner?.SpawnPositions ?? Array.Empty<(Vector3, Vector3)>())
+            foreach (var spawnPoint in CarSpawner?.SpawnPositions ?? Array.Empty<(Vector3, Vector3)>())
             {
                 Gizmos.color = Color.cyan;
                 Gizmos.DrawSphere(spawnPoint.spawnPoint, 0.5f);
