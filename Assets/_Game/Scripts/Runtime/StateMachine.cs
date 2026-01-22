@@ -25,7 +25,7 @@ namespace RacingGame
         public delegate void StateChangedDelegate(State newState, State oldState);
         public event StateChangedDelegate OnStateChanged;
 
-        public StateMachine(IList<State> states, DLogCategory logCategory = null)
+        public StateMachine(IList<State> states, bool autoEnter = false, DLogCategory logCategory = null)
         {
             foreach (State state in states)
             {
@@ -34,7 +34,7 @@ namespace RacingGame
 
             this.logCategory = logCategory ?? DLogCategory.Log;
 
-            if (states.Count > 0)
+            if (autoEnter && states.Count > 0)
             {
                 currentState = states[0];
                 currentState.Enter();

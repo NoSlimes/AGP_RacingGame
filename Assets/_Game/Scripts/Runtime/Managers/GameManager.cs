@@ -24,7 +24,7 @@ namespace RacingGame
 
         private readonly List<ITickable> tickables = new();
 
-        public CarSpawner CarSpawner {  get; private set; }
+        public CarSpawner CarSpawner { get; private set; }
         public StateMachine StateMachine { get; private set; }
         public CheckpointManager CheckpointManager { get; private set; }
         public bool IsPaused => StateMachine?.CurrentState is PauseState;
@@ -47,13 +47,13 @@ namespace RacingGame
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
+            CheckpointManager = FindFirstObjectByType<CheckpointManager>();
             StateMachine = new StateMachine(new List<StateMachine.State>
             {
                 new GameState(this, stateMachineLogCategory, autoSpawn),
                 new PauseState(this, stateMachineLogCategory)
-            }, stateMachineLogCategory);
-            
-            CheckpointManager = FindFirstObjectByType<CheckpointManager>();
+            }, logCategory: stateMachineLogCategory);
+
 
             IEnumerable<ITickable> initialTickables = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).OfType<ITickable>();
             foreach (ITickable t in initialTickables) RegisterTickable(t);
@@ -75,6 +75,8 @@ namespace RacingGame
                     OnPlayerCarAssigned?.Invoke(PlayerCar);
                 }
             };
+
+            StateMachine.ChangeState<GameState>();
         }
 
         [ConsoleCommand("spawn_cars", "Spawns cars into the scene.")]
