@@ -1,3 +1,4 @@
+using NUnit.Framework.Interfaces;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,6 +25,13 @@ namespace RacingGame
         [Header("Skid Marks")]
         [SerializeField] private SkidTrail skidTrailPrefab;
         [SerializeField, Range(0f, 2f)] private float skidSlipThreshold = 0.4f;
+
+        [Header("Brake Lights")]
+        [SerializeField] private Renderer[] brakeLightRenderers;
+        [SerializeField] private Color brakeColorOn = Color.red * 2f;
+        [SerializeField] private Color brakeColorOff = Color.black * 10f;
+        [SerializeField] private float brakeLightFadeSpeed = 10f;
+        private float brakeLightIntensity;
 
         private CarControl carControl;
         private CarInputComponent carInput;
@@ -89,6 +97,11 @@ namespace RacingGame
             {
                 skidTrails[i] = Instantiate(skidTrailPrefab, skidParent);
             }
+
+            foreach (var r in brakeLightRenderers)
+            {
+                r.material = new Material(r.material);
+            }
         }
 
         private void OnDestroy()
@@ -108,6 +121,7 @@ namespace RacingGame
         public void TickComponent()
         {
             UpdateEngineSound();
+            UpdateBrakeLights();
         }
 
         public void FixedTickComponent()
@@ -214,6 +228,32 @@ namespace RacingGame
 
             slipAudioSource.volume = Mathf.Lerp(slipAudioSource.volume, targetVolume, Time.fixedDeltaTime * 8f) * slipAudioVolume;
             slipAudioSource.pitch = Mathf.Lerp(0.9f, 1.2f, targetVolume);
+        }
+
+        private void UpdateBrakeLights()
+        {
+            if (carInput == null || rb == null)
+            {
+                Debug.LogError("CarFX: carInput or rb is null");
+                return;
+            }
+
+            bool handBrake = carInput.Inputs.HandBrakeInput;
+            bool brakingInput = carInput.Inputs.MoveInput.y < -0.1f;
+
+            float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
+            bool engineBraking = Mathf.Abs(carInput.Inputs.MoveInput.y) < 0.1f && Mathf.Abs(forwardSpeed) > 1f;
+
+            bool braking = handBrake || brakingInput /*engineBraking*/;
+
+            float target = braking ? 1f : 0f;
+            brakeLightIntensity = Mathf.Lerp(brakeLightIntensity, target, Time.fixedDeltaTime * brakeLightFadeSpeed);
+
+            foreach (var r in brakeLightRenderers)
+            {
+                r.material.SetColor("_EmissionColor", Color.Lerp(brakeColorOff, brakeColorOn, brakeLightIntensity));
+            }
+
         }
     }
 }
