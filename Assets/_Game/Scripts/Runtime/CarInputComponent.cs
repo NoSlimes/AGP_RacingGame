@@ -15,6 +15,8 @@ namespace RacingGame
         public ICarInputs Inputs => _carInputs;
         int ICarComponent.Priority => -100;
 
+        public bool IsPlayerControlled => _carInputs is not null and PlayerCarInputs;
+
         public void Initialize(Car _) { }
 
         public void SetInputs(ICarInputs inputs)

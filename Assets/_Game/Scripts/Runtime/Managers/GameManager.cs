@@ -68,12 +68,11 @@ namespace RacingGame
             CarSpawner = new(waypointBuilder, carPrefab, carCount, spawnPlayerCar);
             CarSpawner.OnCarsSpawned += () =>
             {
-                var playerCar = GetPlayerCar();
-                if (playerCar != null)
+                if (PlayerCar != null)
                 {
                     DLogger.LogDev("Player car assigned.", category: logCategory);
 
-                    OnPlayerCarAssigned?.Invoke(playerCar);
+                    OnPlayerCarAssigned?.Invoke(PlayerCar);
                 }
             };
         }
@@ -101,12 +100,11 @@ namespace RacingGame
             }
         }
 
-        public Car GetPlayerCar() => CarSpawner?.PlayerCar;
-
         [Obsolete("Use GameManager.AllCars instead")]
         public Car[] GetAllCars() => CarSpawner?.SpawnedCars.ToArray() ?? Array.Empty<Car>();
 
         public IReadOnlyList<Car> AllCars => CarSpawner?.SpawnedCars;
+        public Car PlayerCar => CarSpawner?.PlayerCar;
 
         public void UpdateTickables()
         {

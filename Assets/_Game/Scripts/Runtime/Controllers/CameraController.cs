@@ -37,7 +37,7 @@ namespace RacingGame
 
         private void OnEnable()
         {
-            Car playerCar = GameManager.Instance.GetPlayerCar();
+            Car playerCar = GameManager.Instance.PlayerCar;
             if (playerCar != null)
             {
                 SetFollowTarget(playerCar.transform);
