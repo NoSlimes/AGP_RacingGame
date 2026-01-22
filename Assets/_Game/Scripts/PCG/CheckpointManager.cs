@@ -1,18 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 namespace RacingGame._Game.Scripts.PCG
 {
     [ExecuteAlways]
     public class CheckpointManager : MonoBehaviour
     {
-        [Header("PCG Input")] 
+        [Header("PCG Input")]
         public TrackWaypointBuilder waypointBuilder;
         public TrackMeshExtruder meshExtruder;
 
-        [Header("Checkpoint Generation")] [Min(1)]
+        [Header("Checkpoint Generation")]
+        [Min(1)]
         public int everyNWaypoints = 10;
-        public float gateWidthPadding = 1.0f; 
+        public float gateWidthPadding = 1.0f;
         public float gateHeight = 4.0f;
         public float gateLength = 2.5f;
         public float yOffset = 0.2f;
@@ -24,10 +26,10 @@ namespace RacingGame._Game.Scripts.PCG
         [Header("Ordering / Anti-cheat")]
         public bool enforceForwardProgress = true;
 
-        [Header("Runtime")] 
+        [Header("Runtime")]
         public string playerTag = "Player";
 
-        [Header("Debug")] 
+        [Header("Debug")]
         public bool drawGizmos = true;
         public float gizmoSphereRadius = 0.35f;
 
@@ -41,6 +43,9 @@ namespace RacingGame._Game.Scripts.PCG
         // Cached respawn pose
         private Vector3 _lastRespawnPos;
         private Quaternion _lastRespawnRot;
+
+        public delegate void CheckpointPassedDelegate(Car car, int newCheckpointIndex, int lastCheckpointIndex, int checkpointsCount);
+        public event CheckpointPassedDelegate OnCarPassedCheckpoint;
 
         private void OnEnable()
         {
@@ -81,7 +86,7 @@ namespace RacingGame._Game.Scripts.PCG
             var p = GameObject.FindGameObjectWithTag(playerTag);
             if (p != null) _player = p.transform;
         }
-        
+
         public void BuildCheckpoints()
         {
             AutoFindRefs();
@@ -131,7 +136,7 @@ namespace RacingGame._Game.Scripts.PCG
             {
                 CreateGateAtWaypoint(i, gateIndex++, gateWidth, count, waypoints, positions);
             }
-            
+
             int nearEnd = Mathf.Max(0, count - Mathf.Max(2, everyNWaypoints));
             if (nearEnd > 0 && (nearEnd % everyNWaypoints) != 0)
             {
@@ -200,7 +205,7 @@ namespace RacingGame._Game.Scripts.PCG
             if (!Application.isPlaying)
             {
                 for (int i = _checkpointRoot.childCount - 1; i >= 0; i--)
-                    Object.DestroyImmediate(_checkpointRoot.GetChild(i).gameObject);
+                    DestroyImmediate(_checkpointRoot.GetChild(i).gameObject);
                 return;
             }
 #endif
@@ -241,6 +246,11 @@ namespace RacingGame._Game.Scripts.PCG
             // Debug
             Debug.Log($"[CheckpointManager] Player hit checkpoint {checkpointIndex}");
             Debug.Log($"[CheckpointManager] PASS CP {checkpointIndex} (prev {LastCheckpointIndex})");
+
+            if (transform.TryGetComponent(out Car car))
+            {
+                OnCarPassedCheckpoint?.Invoke(car, checkpointIndex, LastCheckpointIndex, _gates.Count);
+            }
         }
 
         private void UpdateRespawnPoseFromGateIndex(int checkpointIndex, int totalWaypointCount, List<Transform> wps,

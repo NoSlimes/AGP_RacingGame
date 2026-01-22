@@ -1,5 +1,6 @@
 using UnityEngine;
 
+#if false
 namespace RacingGame
 {
     [RequireComponent(typeof(Rigidbody))]
@@ -108,3 +109,4 @@ namespace RacingGame
         }
     }
 }
+#endif
