@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5244810994776605019}
   - component: {fileID: 2817010098090580178}
   - component: {fileID: 6040754293683745534}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_LF
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -101,7 +101,7 @@ GameObject:
   - component: {fileID: 674613952495671051}
   - component: {fileID: 4471746658077461950}
   - component: {fileID: 4945409084220159564}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_RF_Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -191,7 +191,7 @@ GameObject:
   - component: {fileID: 539843639664558185}
   - component: {fileID: 2621645194544000886}
   - component: {fileID: 8914048066147188459}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Car
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -308,7 +308,7 @@ GameObject:
   - component: {fileID: 4847860241357770362}
   - component: {fileID: 4785088378445621031}
   - component: {fileID: 7195755768934800096}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_LF Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -398,7 +398,7 @@ GameObject:
   - component: {fileID: 4849491524692922253}
   - component: {fileID: 2226209422881402965}
   - component: {fileID: 8342533829928218883}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: BreakLight_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -511,7 +511,7 @@ GameObject:
   - component: {fileID: 718494254858886793}
   - component: {fileID: 4603992361925866922}
   - component: {fileID: 5500014558189622412}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_RF
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -601,7 +601,7 @@ GameObject:
   - component: {fileID: 7432426097278143156}
   - component: {fileID: 2874427662249926220}
   - component: {fileID: 8205529873786658711}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_RR
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -692,7 +692,7 @@ GameObject:
   - component: {fileID: 6851976985456680649}
   - component: {fileID: 1981416905927278722}
   - component: {fileID: 7649686065361507624}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: BreakLight_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -809,7 +809,7 @@ GameObject:
   - component: {fileID: 8842448982863406061}
   - component: {fileID: -8639534672835630653}
   - component: {fileID: 4456176329557439927}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Car
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -940,9 +940,6 @@ MonoBehaviour:
   maxPitch: 1.75
   minVolume: 0.4
   maxVolume: 1
-  pitchSmoothSpeed: 10
-  volumeSmoothSpeed: 5
-  rpmFlutuation: 0.05
   slipAudioSource: {fileID: 236310068069092322}
   slipStart: 0.75
   slipFull: 1
@@ -954,6 +951,7 @@ MonoBehaviour:
   - {fileID: 1981416905927278722}
   brakeColorOn: {r: 2, g: 0, b: 0, a: 2}
   brakeColorOff: {r: 0, g: 0, b: 0, a: 10}
+  NitroActiveColor: {r: 10, g: 9.215687, b: 0.15686275, a: 10}
   brakeLightFadeSpeed: 10
 --- !u!114 &4456176329557439927
 MonoBehaviour:
@@ -979,7 +977,7 @@ GameObject:
   - component: {fileID: 1397113307738596150}
   - component: {fileID: 9050230289326539772}
   - component: {fileID: 8466641098565575666}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_LR
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1068,7 +1066,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4117149513661046474}
   - component: {fileID: 236310068069092322}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: TireScreechAudio
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1197,7 +1195,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7739462684399330531}
   - component: {fileID: 7854958495933716802}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: EngineAudio
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1327,7 +1325,7 @@ GameObject:
   - component: {fileID: 5964120799662338629}
   - component: {fileID: 5156345524367595934}
   - component: {fileID: 2533738550720007603}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_RR Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1416,7 +1414,7 @@ GameObject:
   - component: {fileID: 1995981562739626396}
   - component: {fileID: 8917628520363332027}
   - component: {fileID: 4729484834317838143}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Mirror
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1506,7 +1504,7 @@ GameObject:
   - component: {fileID: 7463631716956550120}
   - component: {fileID: 7343791122660476671}
   - component: {fileID: 3757907548629579678}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wheel_LR Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1596,6 +1594,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: TireSmoke (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 3387424113712159279, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4628386306312521816, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
       propertyPath: looping
       value: 0
@@ -1649,6 +1651,10 @@ PrefabInstance:
     - target: {fileID: 3387424113712159279, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
       propertyPath: m_Name
       value: TireSmoke (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3387424113712159279, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4628386306312521816, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
       propertyPath: looping
@@ -1704,6 +1710,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: TireSmoke
       objectReference: {fileID: 0}
+    - target: {fileID: 3387424113712159279, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4628386306312521816, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
       propertyPath: looping
       value: 0
@@ -1757,6 +1767,10 @@ PrefabInstance:
     - target: {fileID: 3387424113712159279, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
       propertyPath: m_Name
       value: TireSmoke (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3387424113712159279, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4628386306312521816, guid: e4adf22aaf725eb478f6afe70d7eaef1, type: 3}
       propertyPath: looping
