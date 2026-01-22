@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace RacingGame
@@ -98,6 +97,12 @@ namespace RacingGame
             {
                 if (skidTrail != null) Destroy(skidTrail.gameObject);
             }
+
+            foreach (var ps in skidParticles.Values)
+            {
+                if (ps != null && ps.isPlaying)
+                    ps.Stop();
+            }
         }
 
         public void TickComponent()
@@ -132,7 +137,7 @@ namespace RacingGame
                 float audioSlip = isOnGrass ? (slip * 4f) : slip;
                 if (audioSlip > maxSlipForAudio) maxSlipForAudio = audioSlip;
 
-                if (control.IsFront) continue; 
+                if (control.IsFront) continue;
 
                 if (slip > effectiveThreshold)
                 {

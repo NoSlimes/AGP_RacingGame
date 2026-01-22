@@ -10,9 +10,24 @@ public class WheelControl : TickableBehaviour, ICarComponent
     [field: SerializeField] public bool Motorized { get; private set; }
 
     public WheelCollider WheelCollider { get; private set; }
+    public ParticleSystem skidParticles { get; private set; }
+
 
     private Vector3 position;
     private Quaternion rotation;
+
+    private void Awake()
+    {
+        skidParticles = GetComponentInChildren<ParticleSystem>(true);
+        if (skidParticles != null)
+        {
+            skidParticles.Stop();
+        }
+        else
+        {
+            Debug.LogWarning($"No ParticleSystem found for wheel: {gameObject.name}");
+        }
+    }
 
     public void Initialize(Car ownerCar)
     {
