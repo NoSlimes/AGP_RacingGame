@@ -39,6 +39,8 @@ namespace RacingGame
 
             waypointBuilder = UnityEngine.Object.FindAnyObjectByType<TrackWaypointBuilder>();
             bezierTrackGenerator = UnityEngine.Object.FindAnyObjectByType<BezierTrackGenerator>();
+
+            SetupCarRecovery();
         }
 
         public override void Exit()
@@ -107,7 +109,7 @@ namespace RacingGame
 
         private void TickCarPlacements()
         {
-            if (Time.frameCount - lastCheckFrame < 10) 
+            if (Time.frameCount - lastCheckFrame < 10)
                 return;
             lastCheckFrame = Time.frameCount;
 
@@ -167,6 +169,17 @@ namespace RacingGame
     {
         private readonly Dictionary<Car, float> carUpsideDownTimers = new();
 
+        private float minTrackY;
+
+        private void SetupCarRecovery()
+        {
+            carUpsideDownTimers.Clear();
+
+            minTrackY = bezierTrackGenerator.GetComponent<MeshRenderer>() != null
+                ? bezierTrackGenerator.GetComponent<MeshRenderer>().bounds.min.y
+                : -10f;
+        }
+
         private void TickCarRecovery()
         {
             foreach (Car car in GameManager.AllCars)
@@ -192,7 +205,7 @@ namespace RacingGame
 
                 carUpsideDownTimers[car] = timer;
 
-                if (car.transform.position.y < -10f)
+                if (car.transform.position.y < minTrackY - 10f)
                 {
                     RespawnCarAtCheckpoint(car);
                 }

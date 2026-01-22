@@ -7,7 +7,7 @@ namespace RacingGame._Game.Scripts.PCG
     [ExecuteAlways]
     public class TrackWallBuilder : MonoBehaviour
     {
-        [Header("References")] 
+        [Header("References")]
         public SplineContainer splineContainer;
         public TrackMeshExtruder meshExtruder;
 
@@ -18,24 +18,24 @@ namespace RacingGame._Game.Scripts.PCG
         [Min(0f)] public float wallPadding = 0.25f;
         public bool followSlope = false;
 
-        [Header("Wall Shape")] 
+        [Header("Wall Shape")]
         [Min(0.1f)] public float wallHeight = 1.2f;
         [Min(0.01f)] public float wallThickness = 0.25f;
 
-        [Header("Sampling")] 
+        [Header("Sampling")]
         [Min(0f)] public float overrideStepMeters = 0f;
 
-        [Header("Build Output")] 
+        [Header("Build Output")]
         public Transform wallRoot;
         public string wallRootName = "Walls";
         public bool clearOldOnBuild = true;
 
-        [Header("Physics")] 
+        [Header("Physics")]
         public bool addColliders = true;
         public PhysicsMaterial wallPhysicsMaterial;
         public bool isTrigger = false;
 
-        [Header("Build")] 
+        [Header("Build")]
         public bool rebuild;
 
         void Reset()
@@ -171,9 +171,14 @@ namespace RacingGame._Game.Scripts.PCG
             GameObject go;
             if (wallSegmentPrefab)
             {
+#if UNITY_EDITOR
                 go = (Application.isPlaying)
                     ? Instantiate(wallSegmentPrefab, wallRoot)
                     : (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(wallSegmentPrefab, wallRoot);
+#else
+                go = Instantiate(wallSegmentPrefab, wallRoot);
+#endif
+
             }
             else
             {
