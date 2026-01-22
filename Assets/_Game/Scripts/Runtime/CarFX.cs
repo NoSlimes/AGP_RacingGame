@@ -25,9 +25,9 @@ namespace RacingGame
 
         [Header("Brake Lights")]
         [SerializeField] private Renderer[] brakeLightRenderers;
-        [SerializeField] private Color brakeColorOn = Color.red * 2f;
-        [SerializeField] private Color brakeColorOff = Color.black * 10f;
-        [SerializeField] private Color NitroActiveColor = Color.yellow * 10f;
+        [SerializeField] private Color brakeColorOn = Color.red * 2f; // Color of brake lights
+        [SerializeField] private Color brakeColorOff = Color.black * 10f; // Color of light when neutral
+        [SerializeField] private Color NitroActiveColor = Color.yellow * 10f; // Color of brake lights while nitro boosting
         [SerializeField] private float brakeLightFadeSpeed = 10f;
         private float brakeLightIntensity;
         private Color currentColor;
@@ -97,6 +97,7 @@ namespace RacingGame
                 skidTrails[i] = Instantiate(skidTrailPrefab, skidParent);
             }
 
+            // Initialice brale-lights
             foreach (var r in brakeLightRenderers)
             {
                 r.material = new Material(r.material);
@@ -237,12 +238,13 @@ namespace RacingGame
                 return;
             }
 
-            bool handBrake = carInput.Inputs.HandBrakeInput;
-            bool brakingInput = carInput.Inputs.MoveInput.y < -0.1f;
-            bool nitroInput = carControl.NitroActive;
+            // car status
+            bool handBrake = carInput.Inputs.HandBrakeInput; // Car hitting the brakes
+            bool brakingInput = carInput.Inputs.MoveInput.y < -0.1f; // Car reversing
+            bool nitroInput = carControl.NitroActive; // Car driiving with active nitro
 
             float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
-            bool engineBraking = Mathf.Abs(carInput.Inputs.MoveInput.y) < 0.1f && Mathf.Abs(forwardSpeed) > 1f;
+            bool engineBraking = Mathf.Abs(carInput.Inputs.MoveInput.y) < 0.1f && Mathf.Abs(forwardSpeed) > 1f; // Car slowing down
 
             bool braking = handBrake || brakingInput /*engineBraking*/;
 
