@@ -23,9 +23,13 @@ namespace RacingGame._Game.Scripts.PCG
 
         [Header("Ordering / Anti-cheat")]
         public bool enforceForwardProgress = true;
+        
+        [Header("Laps")]
+        public int lapsToWin = 3;
+        public int CurrentLap { get; private set; } = 0;
 
-        [Header("Runtime")] 
-        public string playerTag = "Player";
+        [Header("Anti-Backwards")]
+        public bool respawnIfGoingBackwards = true;
 
         [Header("Debug")] 
         public bool drawGizmos = true;
@@ -199,38 +203,62 @@ namespace RacingGame._Game.Scripts.PCG
 
         public void NotifyCheckpointPassed(int checkpointIndex, Transform who)
         {
-            // Cache player on first hit
             if (_player == null && who != null) _player = who;
 
+            int gateCount = _gates.Count;
+            if (gateCount <= 0) return;
+
+            int prev = LastCheckpointIndex;
+            int expected = (prev + 1) % gateCount;
+            
             if (enforceForwardProgress)
             {
-                // Only accept moving forward
-                if (checkpointIndex < LastCheckpointIndex)
-                    return;
-            }
-
-            LastCheckpointIndex = checkpointIndex;
-
-            // Update respawn pose based on the checkpoint
-            if (checkpointIndex >= 0 && checkpointIndex < _gates.Count && _gates[checkpointIndex] != null)
-            {
-                var t = _gates[checkpointIndex].transform;
-                _lastRespawnPos = t.position + Vector3.up * respawnUpOffset;
-                _lastRespawnRot = t.rotation;
-
-                if (flattenRespawnRotation)
+                if (checkpointIndex != expected)
                 {
-                    var fwd = _lastRespawnRot * Vector3.forward;
-                    fwd.y = 0f;
-                    if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
-                    _lastRespawnRot = Quaternion.LookRotation(fwd.normalized, Vector3.up);
+                    // Prevent going backwards
+                    if (respawnIfGoingBackwards && checkpointIndex != prev)
+                    {
+                        // Respawn them to the last valid checkpoint
+                        Debug.Log($"[CheckpointManager] Wrong checkpoint {checkpointIndex}, expected {expected}. Respawn!");
+                        
+                        // Option A: do nothing here and let PlayerController call respawn
+                        var recovery = who.GetComponent<CarTopleRecovery>();
+                        if (recovery != null)
+                            recovery.TryRespawn();
+                        
+                        // Option B: if you have recovery script, call it:
+                        // who.GetComponent<CarToppleRecovery>()?.ForceRespawnNow();
+                    }
+
+                    return;
                 }
             }
+            
+            LastCheckpointIndex = checkpointIndex;
 
-            // Debug
-            Debug.Log($"[CheckpointManager] Player hit checkpoint {checkpointIndex}");
-            Debug.Log($"[CheckpointManager] PASS CP {checkpointIndex} (prev {LastCheckpointIndex})");
+            // Lap count
+            if (checkpointIndex == 0 && prev == gateCount - 1)
+            {
+                CurrentLap++;
+                Debug.Log($"[CheckpointManager] LAP {CurrentLap} complete!");
+            }
+
+            // Update respawn pos
+            var t = _gates[checkpointIndex].transform;
+            _lastRespawnPos = t.position + Vector3.up * respawnUpOffset;
+            _lastRespawnRot = t.rotation;
+
+            if (flattenRespawnRotation)
+            {
+                var fwd = _lastRespawnRot * Vector3.forward;
+                fwd.y = 0f;
+                if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
+                _lastRespawnRot = Quaternion.LookRotation(fwd.normalized, Vector3.up);
+            }
+
+            Debug.Log($"[CheckpointManager] PASS CP {checkpointIndex} (prev {prev}, expected {expected})");
         }
+
 
         private void UpdateRespawnPoseFromGateIndex(int checkpointIndex, int totalWaypointCount, List<Transform> wps,
             List<Vector3> pos)
