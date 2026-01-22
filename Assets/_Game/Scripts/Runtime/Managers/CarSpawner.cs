@@ -32,6 +32,8 @@ namespace RacingGame
 
             spawnPositions = new (Vector3, Vector3)[carCount];
             PrepareSpawnPositions();
+
+            NameUtility.Init();
         }
 
         public Car[] SpawnCars()
@@ -65,17 +67,27 @@ namespace RacingGame
                         inputComp.SetInputs(aiController);
                     }
                 }
+
+                var rend = car.GetComponentInChildren<MeshRenderer>();
+                if (rend)
+                {
+                    rend.material.color = UnityEngine.Random.ColorHSV(0f, 1f, 0.7f, 1f, 0.85f, 1f);
+                }
             }
 
             if (PlayerCar)
-                PlayerCar.SetName("Player");
+            {
+                var playerName = PlayerPrefs.GetString("PlayerName", "Player");
+                PlayerCar.SetName(playerName);
+            }
 
             var aiCars = spawnedCars.Where(c => c != PlayerCar).ToList();
-
             for (int i = 0; i < aiCars.Count; i++)
             {
                 Car car = aiCars[i];
-                car.SetName($"AI {i}");
+                var name = NameUtility.GetRandomNameFromJson();
+
+                car.SetName(name);
             }
 
             OnCarsSpawned?.Invoke();

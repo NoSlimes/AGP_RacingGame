@@ -16,9 +16,14 @@ namespace RacingGame
         [SerializeField] private float downforce = 50f;
 
         [Header("Nitro Configurations")]
-        [SerializeField] private float nitroMultiplier; // How strong the nitro boost is
-        [SerializeField] private float nitroDuration; // For how long is the boost going to last
-        [SerializeField] private float nitroCooldown; // how long is the cooldown before we can boost again
+        [Tooltip("The constant acceleration force applied while holding Nitro (m/s^2)")]
+        [SerializeField] private float nitroAcceleration = 25f;
+        [Tooltip("How much the top speed is multiplied by while Nitro is active")]
+        [SerializeField] private float nitroMaxSpeedMultiplier = 1.5f;
+        [Tooltip("Maximum amount of time the nitro can be held before depleting")]
+        [SerializeField] private float nitroDuration = 2.5f;
+        [Tooltip("Time required for the nitro tank to refill after depletion or release")]
+        [SerializeField] private float nitroCooldown = 3f;
 
         private WheelControl[] wheels;
         private WheelControl[] frontWheels;
@@ -34,10 +39,6 @@ namespace RacingGame
         public float MaxSpeed => maxSpeed;
         public float SteeringRange => steeringRange;
         public float SteeringRangeAtMaxSpeed => steeringRangeAtMaxSpeed;
-
-        public float NitroMultiplier => nitroMultiplier;
-        public float NitroDuration => nitroDuration;
-        public float NitroCooldown => nitroCooldown;
         public bool NitroActive => nitroActive;
 
         public void Initialize(Car ownerCar)
@@ -48,72 +49,44 @@ namespace RacingGame
 
             frontWheels = wheels.Where(w => w.IsFront).ToArray();
             rearWheels = wheels.Where(w => !w.IsFront).ToArray();
+
+            // Initialize the nitro tank to full
+            nitroTimer = nitroDuration;
         }
 
-        // FixedUpdate is called at a fixed time interval
         public void FixedTickComponent()
         {
-            // Read the Vector2 input from the new Input System
+            // Read inputs
             Vector2 inputVector = carInput.Inputs.MoveInput;
-
-            // Read nitro and break Input
             bool nitroInput = carInput.Inputs.NitroInput;
             bool handBrakeInput = carInput.Inputs.HandBrakeInput;
 
-            // Get player input for acceleration and steering
-            float accInput = inputVector.y; 
-            float steerInput = inputVector.x; 
+            float accInput = inputVector.y;
+            float steerInput = inputVector.x;
 
-            // Calculate current speed along the car's forward axis
+            // 1. HANDLE NITRO LOGIC (Held down + Acceleration)
+            HandleNitroUsage(nitroInput);
+
+            // 2. SPEED CALCULATIONS
             float forwardSpeed = Vector3.Dot(transform.forward, rigidBody.linearVelocity);
-            float effectiveMaxSpeed = nitroActive ? maxSpeed * nitroMultiplier : maxSpeed;
-            float speedFactor = Mathf.InverseLerp(0, effectiveMaxSpeed, Mathf.Abs(forwardSpeed)); // Normalized speed factor
+            float effectiveMaxSpeed = nitroActive ? maxSpeed * nitroMaxSpeedMultiplier : maxSpeed;
+            float speedFactor = Mathf.InverseLerp(0, effectiveMaxSpeed, Mathf.Abs(forwardSpeed));
 
-            // Reduce motor torque and steering at high speeds for better handling
-            float torqueFade = nitroActive ? 0f : speedFactor;
+            // Reduce torque as we reach max speed to prevent infinite acceleration
+            float torqueFade = speedFactor;
             float baseTorque = Mathf.Lerp(motorTorque, 0f, torqueFade);
-            float currentMotorTorque = nitroActive ? baseTorque * nitroMultiplier : baseTorque;
-            // float currentMotorTorque = Mathf.Lerp(motorTorque, 0f, torqueFade);
+
+            // Boost the base motor torque slightly if nitro is on for better uphill/resistance feel
+            float currentMotorTorque = nitroActive ? baseTorque * 1.5f : baseTorque;
             float currentSteerRange = Mathf.Lerp(steeringRange, steeringRangeAtMaxSpeed, speedFactor);
 
-            // Determine if the player is accelerating or trying to reverse
             bool isAccelerating = !handBrakeInput && Mathf.Sign(accInput) == Mathf.Sign(forwardSpeed);
 
-            // Decrease the nitro timer if we are curently using nitro boost
-            if (nitroActive)
-            {
-                nitroTimer -= Time.fixedDeltaTime;
-
-                if (nitroTimer <= 0f)
-                {
-                    nitroActive = false;
-                    nitroOnCooldown = true;
-                    nitroCooldownTimer = nitroCooldown;
-                }
-            }
-            else if (nitroOnCooldown)
-            {
-                nitroCooldownTimer -= Time.fixedDeltaTime;
-
-                if (nitroCooldownTimer <= 0f)
-                    nitroOnCooldown = false;
-            }
-
-            // Activate nitro
-            if (nitroInput && !nitroActive && !nitroOnCooldown)
-            {
-                nitroActive = true;
-                nitroTimer = nitroDuration;
-
-                rigidBody.AddForce(
-                    transform.forward * motorTorque * nitroMultiplier,
-                    ForceMode.Impulse
-                );
-            }
-
-
+            // 3. APPLY PHYSICAL FORCES
+            // Downforce
             rigidBody.AddForce(-transform.up * downforce * rigidBody.linearVelocity.magnitude);
 
+            // Anti-Roll
             ApplyAntiRoll(frontWheels);
             ApplyAntiRoll(rearWheels);
 
@@ -123,6 +96,7 @@ namespace RacingGame
                 float surfaceGrip = 1f;
                 float surfacePower = 1f;
 
+                // Ground Detection / Surface Physics
                 if (wheel.WheelCollider.GetGroundHit(out var hit))
                 {
                     if (hit.collider.sharedMaterial != null && hit.collider.sharedMaterial.name.Contains("Grass"))
@@ -133,23 +107,19 @@ namespace RacingGame
                     }
                 }
 
+                // Update Friction based on surface
                 float targetStiffness = 2.0f * surfaceGrip;
-                if (!Mathf.Approximately(wheel.WheelCollider.sidewaysFriction.stiffness, targetStiffness))
-                {
-                    WheelFrictionCurve sFric = wheel.WheelCollider.sidewaysFriction;
-                    sFric.stiffness = targetStiffness;
-                    wheel.WheelCollider.sidewaysFriction = sFric;
+                WheelFrictionCurve sFric = wheel.WheelCollider.sidewaysFriction;
+                sFric.stiffness = targetStiffness;
+                wheel.WheelCollider.sidewaysFriction = sFric;
 
-                    WheelFrictionCurve fFric = wheel.WheelCollider.forwardFriction;
-                    fFric.stiffness = targetStiffness;
-                    wheel.WheelCollider.forwardFriction = fFric;
-                }
+                WheelFrictionCurve fFric = wheel.WheelCollider.forwardFriction;
+                fFric.stiffness = targetStiffness;
+                wheel.WheelCollider.forwardFriction = fFric;
 
-                // Apply steering to wheels that support steering
+                // Steering
                 if (wheel.Steerable)
                 {
-                    //wheel.WheelCollider.steerAngle = hInput * currentSteerRange; // without steering damping
-                    // Added damping to steeriing
                     float targetAngle = steerInput * currentSteerRange;
                     wheel.WheelCollider.steerAngle = Mathf.MoveTowards(
                         wheel.WheelCollider.steerAngle,
@@ -158,54 +128,93 @@ namespace RacingGame
                     );
                 }
 
+                // Acceleration and Braking
                 if (isAccelerating)
                 {
-                    // Apply torque to motorized wheels
                     if (wheel.Motorized)
                     {
                         wheel.WheelCollider.motorTorque = accInput * currentMotorTorque * surfacePower;
                     }
-                    // Release brakes when accelerating
                     wheel.WheelCollider.brakeTorque = 0f;
                 }
                 else
                 {
-                    // Apply brakes when reversing direction
                     wheel.WheelCollider.motorTorque = 0f;
                     wheel.WheelCollider.brakeTorque = Mathf.Abs(accInput) * brakeTorque;
                 }
             }
 
-            // Apply breaking
+            // Handbrake Logic
             if (handBrakeInput)
             {
                 foreach (WheelControl wheel in rearWheels)
                     wheel.WheelCollider.brakeTorque = brakeTorque;
             }
 
+            // 4. LIMITING AND RESISTANCE
             // Speed limiting 
             float excessSpeed = Mathf.Abs(forwardSpeed) - effectiveMaxSpeed;
             if (excessSpeed > 0)
             {
-                // Applies a strong backwards force to match air resistance at high speeds
                 rigidBody.AddForce(-transform.forward * excessSpeed * 500f);
             }
 
-            // Apply additional resistance if any wheels are on grass
+            // Grass resistance
             if (wheelsOnGrass > 0)
             {
                 float grassDrag = (wheelsOnGrass / (float)wheels.Length) * forwardSpeed * 200f;
                 rigidBody.AddForce(-transform.forward * grassDrag);
             }
 
-            // Engine Drag
+            // Engine Drag (Neutral)
             if (Mathf.Abs(accInput) < 0.1f && !handBrakeInput)
             {
-                rigidBody.AddForce(
-                    -transform.forward * forwardSpeed * 0.5f,
-                    ForceMode.Acceleration
-                );
+                rigidBody.AddForce(-transform.forward * forwardSpeed * 0.5f, ForceMode.Acceleration);
             }
+        }
+
+        private void HandleNitroUsage(bool nitroInput)
+        {
+            // Default to inactive unless conditions are met
+            nitroActive = false;
+
+            if (nitroOnCooldown)
+            {
+                nitroCooldownTimer -= Time.fixedDeltaTime;
+                if (nitroCooldownTimer <= 0)
+                {
+                    nitroOnCooldown = false;
+                    nitroTimer = nitroDuration; // Refill the tank
+                }
+            }
+            else
+            {
+                // Active only while button is held AND we have 'fuel'
+                if (nitroInput && nitroTimer > 0)
+                {
+                    nitroActive = true;
+                    nitroTimer -= Time.fixedDeltaTime;
+
+                    // Apply continuous Acceleration force
+                    rigidBody.AddForce(transform.forward * nitroAcceleration, ForceMode.Acceleration);
+
+                    // If tank empties while holding, trigger cooldown
+                    if (nitroTimer <= 0)
+                    {
+                        StartNitroCooldown();
+                    }
+                }
+                // If user releases the button before it's empty, we could either refill or just stop. 
+                // Currently: Refills only after a full depletion or if you want it to recharge slowly, 
+                // you would add recharge logic here.
+            }
+        }
+
+        private void StartNitroCooldown()
+        {
+            nitroActive = false;
+            nitroOnCooldown = true;
+            nitroCooldownTimer = nitroCooldown;
         }
 
         private void ApplyAntiRoll(WheelControl[] wheelPair)
@@ -238,7 +247,6 @@ namespace RacingGame
 
         private void OnDrawGizmos()
         {
-            // Visualize the center of mass in the editor
             if (TryGetComponent<Rigidbody>(out Rigidbody rb))
             {
                 Gizmos.color = Color.green;
@@ -246,7 +254,6 @@ namespace RacingGame
                 Gizmos.DrawSphere(comPosition, 0.15f);
             }
 
-            // Visualize the input direction
             if (carInput != null)
             {
                 Vector2 inputVector = carInput.Inputs.MoveInput;
@@ -255,7 +262,6 @@ namespace RacingGame
                 Gizmos.DrawLine(transform.position, transform.position + (inputDirection * 2f));
             }
 
-            // Visualize the movement direction
             if (rigidBody != null)
             {
                 Gizmos.color = Color.blue;

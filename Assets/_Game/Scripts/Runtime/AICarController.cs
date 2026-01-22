@@ -42,6 +42,7 @@ namespace RacingGame
         public Vector2 MoveInput { get; private set; }
         public bool HandBrakeInput { get; private set; }
         public bool NitroInput { get; private set; }
+        public bool HornInput { get; private set; }
 
         CarContexts carAhead;
         CarContexts carRight;
@@ -265,9 +266,15 @@ namespace RacingGame
             {
                 StuckTimer -= Time.deltaTime;
 
+                HornInput = HornInput ? UnityEngine.Random.value > 0.02f : UnityEngine.Random.value > 0.7f;
+
                 throttle = -0.6f;
                 brake = false;
                 steerInput = -Mathf.Sign(steerInput);
+            }
+            else
+            {
+                HornInput = false;
             }
 
             MoveInput = new Vector2(steerInput, throttle);

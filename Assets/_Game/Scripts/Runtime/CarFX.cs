@@ -19,6 +19,9 @@ namespace RacingGame
         [SerializeField, Range(0f, 2f)] private float slipFull = 1.0f;
         [SerializeField, Range(0f, 1f)] private float slipAudioVolume = 0.5f;
 
+        [Header("Audio: Horn")]
+        [SerializeField] private AudioSource hornAudioSource;
+
         [Header("Skid Marks")]
         [SerializeField] private SkidTrail skidTrailPrefab;
         [SerializeField, Range(0f, 2f)] private float skidSlipThreshold = 0.4f;
@@ -122,6 +125,17 @@ namespace RacingGame
         {
             UpdateEngineSound();
             UpdateBrakeLights();
+
+            if(carInput.Inputs.HornInput && hornAudioSource != null)
+            {
+                if (!hornAudioSource.isPlaying)
+                    hornAudioSource.Play();
+            }
+            else
+            {
+                if (hornAudioSource != null && hornAudioSource.isPlaying)
+                    hornAudioSource.Stop();
+            }
         }
 
         public void FixedTickComponent()
