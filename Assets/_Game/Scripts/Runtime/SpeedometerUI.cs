@@ -9,15 +9,15 @@ namespace RacingGame
         [SerializeField] private TextMeshProUGUI mph_UI;
         [SerializeField] private TextMeshProUGUI ms_UI;
 
-        [SerializeField] private float maxSpeed = 200f;
+        public float maxSpeed = 200f; // The max speed on your gauge
 
         [Header("UI Elements")]
-        [SerializeField] private TextMeshProUGUI digitalText;
-        [SerializeField] private RectTransform needle; 
+        public TextMeshProUGUI digitalText;
+        public RectTransform needle; // The needle's Transform
 
         [Header("Needle Settings")]
-        [SerializeField] private float zeroSpeedAngle = 90f;
-        [SerializeField] private float maxSpeedAngle = -90f;  
+        public float zeroSpeedAngle = 90f; // Angle when speed is 0
+        public float maxSpeedAngle = -90f;  // Angle when speed is max
 
         private Speedometer speedometer;
 
