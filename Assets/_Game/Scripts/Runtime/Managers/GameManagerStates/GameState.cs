@@ -8,6 +8,7 @@ using System.Linq;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.Splines;
 
 namespace RacingGame
@@ -55,6 +56,7 @@ namespace RacingGame
             GameManager.UpdateTickables();
 
             TickCarPlacements();
+            TickRaceFinishTimer();
         }
 
         public override void LateUpdate()
@@ -90,18 +92,32 @@ namespace RacingGame
         private readonly Dictionary<Car, int> carLaps = new();
         private readonly Dictionary<Car, int> checkPointsHitThisLap = new();
 
-        private readonly List<Car> carPlacements = new();
+        private readonly Dictionary<Car, float> carFinishTimes = new();
+        private readonly List<Car> finishOrderSnapshot = new();
 
+        private bool raceFinishTimerRunning;
+        private float raceFinishStartTime;
+        private const float raceFinishTimeout = 30f;
+        private bool raceFinished;
+
+        private readonly List<Car> carPlacements = new();
         public IReadOnlyList<Car> CarPlacements => carPlacements;
 
         public event Action<IReadOnlyList<Car>> OnCarPlacementsChanged;
         public event Action<Car, int> OnCarLapped;
+        public event Action<Car, int> OnCarFinishedRace;
+        public event Action<IReadOnlyList<(Car car, float time)>> OnRaceFinished;
 
         private int lastCheckFrame;
 
         private void SetupLaps()
         {
             carLaps.Clear();
+            checkPointsHitThisLap.Clear();
+            carFinishTimes.Clear();
+            finishOrderSnapshot.Clear();
+            raceFinishTimerRunning = false;
+            raceFinished = false;
 
             foreach (var car in GameManager.AllCars)
                 carLaps[car] = 0;
@@ -125,9 +141,8 @@ namespace RacingGame
                 SplineUtility.GetNearestPoint(spline, localPos, out _, out float t);
 
                 float distanceAlongSpline = spline.ConvertIndexUnit(t, PathIndexUnit.Normalized, PathIndexUnit.Distance);
-
-                // Safety check for dictionary keys
                 int laps = carLaps.TryGetValue(car, out int l) ? l : 0;
+
                 car.ProgressScore = (laps * splineLength) + distanceAlongSpline;
 
                 if (!carPlacements.Contains(car))
@@ -138,9 +153,7 @@ namespace RacingGame
             carPlacements.Sort((a, b) => b.ProgressScore.CompareTo(a.ProgressScore));
 
             if (!carPlacements.SequenceEqual(oldOrder))
-            {
                 OnCarPlacementsChanged?.Invoke(carPlacements);
-            }
         }
 
         private void OnCarPassedCheckpoint(Car car, int newCheckpointIdx, int lastCheckpointIdx, int totalCheckpointCount)
@@ -157,11 +170,69 @@ namespace RacingGame
                 carLaps[car]++;
                 int currentLap = carLaps[car];
 
+                if (currentLap >= GameManager.LapsToComplete)
+                    HandleCarFinished(car);
+
                 checkPointsHitThisLap[car] = 1;
 
                 DLogger.Log($"{car.name} completed lap {currentLap}", GameManager, LogCategory);
                 OnCarLapped?.Invoke(car, currentLap);
             }
+        }
+
+        private void TickRaceFinishTimer()
+        {
+            if (!raceFinishTimerRunning || raceFinished) return;
+
+            if (Time.time - raceFinishStartTime >= raceFinishTimeout)
+                FinishRace();
+        }
+
+        private void HandleCarFinished(Car car)
+        {
+            if (raceFinished || carFinishTimes.ContainsKey(car)) return;
+
+            float finishTime = Time.timeSinceLevelLoad;
+            carFinishTimes[car] = finishTime;
+
+            if (!finishOrderSnapshot.Contains(car))
+                finishOrderSnapshot.Add(car);
+
+            OnCarFinishedRace?.Invoke(car, finishOrderSnapshot.Count);
+
+            if(car == GameManager.PlayerCar)
+            {
+                var aiTakeover = new AICarController(waypointBuilder.Centerline, waypointBuilder.LeftEdge, waypointBuilder.RightEdge);
+                car.GetCarComponent<CarInputComponent>().SetInputs(aiTakeover);
+            }
+
+            if (!raceFinishTimerRunning)
+            {
+                raceFinishTimerRunning = true;
+                raceFinishStartTime = Time.time;
+            }
+
+            if (carFinishTimes.Count == GameManager.AllCars.Count)
+                FinishRace();
+        }
+
+        private void FinishRace()
+        {
+            if (raceFinished) return;
+            raceFinished = true;
+
+            var results = new List<(Car car, float time)>();
+
+            foreach (var car in finishOrderSnapshot)
+                results.Add((car, carFinishTimes[car]));
+
+            foreach (var car in carPlacements)
+            {
+                if (carFinishTimes.ContainsKey(car)) continue;
+                results.Add((car, -1f));
+            }
+
+            OnRaceFinished?.Invoke(results);
         }
     }
 

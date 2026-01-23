@@ -22,6 +22,8 @@ namespace RacingGame
         [SerializeField] private bool autoSpawn = true;
         [SerializeField] private bool spawnPlayerCar = true;
 
+        [field: SerializeField] public int LapsToComplete { get; private set; } = 3;
+
         private readonly List<ITickable> tickables = new();
 
         public CarSpawner CarSpawner { get; private set; }
@@ -45,7 +47,7 @@ namespace RacingGame
             }
 
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            //DontDestroyOnLoad(gameObject);
 
             CheckpointManager = FindFirstObjectByType<CheckpointManager>();
             StateMachine = new StateMachine(new List<StateMachine.State>
@@ -59,6 +61,9 @@ namespace RacingGame
             foreach (ITickable t in initialTickables) RegisterTickable(t);
 
             DLogger.LogDev("GameManager initialized.", category: logCategory);
+
+            LapsToComplete = (int)PlayerPrefs.GetFloat("LapsToComplete", LapsToComplete);
+            carCount = (int)PlayerPrefs.GetFloat("AIPlayers", carCount);
         }
 
         private void Start()
@@ -77,6 +82,11 @@ namespace RacingGame
             };
 
             StateMachine.ChangeState<GameState>();
+        }
+
+        private void OnDestroy()
+        {
+            StateMachine?.CurrentState?.Exit();
         }
 
         [ConsoleCommand("spawn_cars", "Spawns cars into the scene.")]

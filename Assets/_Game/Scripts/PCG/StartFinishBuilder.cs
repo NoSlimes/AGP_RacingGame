@@ -5,23 +5,28 @@ namespace RacingGame._Game.Scripts.PCG
     [ExecuteAlways]
     public class StartFinishBuilder : MonoBehaviour
     {
-        [Header("References")] public TrackWaypointBuilder waypointBuilder;
-        public Transform parent;
+        [Header("References")]
+        [SerializeField] private TrackWaypointBuilder waypointBuilder;
+        [SerializeField] private Transform parent;
 
-        [Header("Visual")] public Material startFinishMaterial;
-        [Min(0.1f)] public float lineLength = 3.0f;
-        [Min(0.01f)] public float lineThickness = 0.02f;
-        public float yOffset = 0.05f;
+        [Header("Visual")]
+        [SerializeField] private Material startFinishMaterial;
+        [SerializeField, Min(0.1f)] private float lineLength = 3.0f;
+        [SerializeField, Min(0.01f)] private float lineThickness = 0.02f;
+        [SerializeField] private float yOffset = 0.05f;
 
-        [Header("Sizing")] public float roadWidth = 8f;
-        public float extraWidth = 0.2f;
+        [Header("Sizing")]
+        [SerializeField] private float roadWidth = 8f;
+        [SerializeField] private float extraWidth = 0.2f;
 
-        [Header("Trigger")] public bool createTrigger = true;
-        public string triggerObjectName = "LapTrigger";
-        public Vector3 triggerSize = new Vector3(9f, 3f, 2.5f);
-        public Vector3 triggerLocalOffset = new Vector3(0f, 1.0f, 0f);
+        [Header("Trigger")]
+        [SerializeField] private bool createTrigger = true;
+        [SerializeField] private string triggerObjectName = "LapTrigger";
+        [SerializeField] private Vector3 triggerSize = new Vector3(9f, 3f, 2.5f);
+        [SerializeField] private Vector3 triggerLocalOffset = new Vector3(0f, 1.0f, 0f);
 
-        [Header("Build")] public bool rebuild;
+        [Header("Build")]
+        [SerializeField] private bool rebuild;
 
         private GameObject _lineGO;
         private GameObject _triggerGO;
@@ -45,16 +50,13 @@ namespace RacingGame._Game.Scripts.PCG
         {
             if (!waypointBuilder) return;
 
-            // 2 waypoints to get forward direction
             var wps = waypointBuilder.Waypoints;
-            if (wps == null || wps.Count < 2 || wps[0] == null || wps[1] == null)
-                return;
+            if (wps == null || wps.Count < 2 || wps[0] == null || wps[1] == null) return;
 
             if (!parent) parent = transform;
 
             EnsureObjects();
 
-            // Position at WP_000
             Vector3 p0 = wps[0].position;
             Vector3 p1 = wps[1].position;
 
@@ -69,26 +71,21 @@ namespace RacingGame._Game.Scripts.PCG
             _lineGO.transform.position = p0 + Vector3.up * yOffset;
             _lineGO.transform.rotation = rot;
 
-            // Size the line
             float width = roadWidth + extraWidth;
             _lineGO.transform.localScale = new Vector3(width, lineThickness, lineLength);
 
-            // Material
             var mr = _lineGO.GetComponent<MeshRenderer>();
             if (startFinishMaterial) mr.sharedMaterial = startFinishMaterial;
 
-            // Trigger
             if (createTrigger)
             {
                 _triggerGO.SetActive(true);
                 _triggerGO.transform.SetParent(_lineGO.transform, false);
                 _triggerGO.transform.localPosition = triggerLocalOffset;
 
-                // Make trigger match road width
                 var bc = _triggerGO.GetComponent<BoxCollider>();
                 bc.isTrigger = true;
-
-                bc.size = new Vector3(triggerSize.x, triggerSize.y, triggerSize.z);
+                bc.size = triggerSize;
                 bc.center = Vector3.zero;
             }
             else
@@ -101,28 +98,18 @@ namespace RacingGame._Game.Scripts.PCG
         {
             if (_lineGO == null)
             {
-                _lineGO = GameObject.Find("StartFinishLine_AUTOGEN");
-                if (_lineGO == null)
-                {
-                    _lineGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    _lineGO.name = "StartFinishLine_AUTOGEN";
-#if UNITY_EDITOR
-                    if (!Application.isPlaying)
-                        DestroyImmediate(_lineGO.GetComponent<Collider>());
-                    else
-#endif
-                        Destroy(_lineGO.GetComponent<Collider>());
-                }
+                _lineGO = new GameObject("StartFinishLine_AUTOGEN");
+                _lineGO.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
+                _lineGO.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+                _lineGO.AddComponent<MeshRenderer>();
             }
 
             if (_triggerGO == null)
             {
-                _triggerGO = GameObject.Find(triggerObjectName + "_AUTOGEN");
-                if (_triggerGO == null)
-                {
-                    _triggerGO = new GameObject(triggerObjectName + "_AUTOGEN");
-                    _triggerGO.AddComponent<BoxCollider>();
-                }
+                _triggerGO = new GameObject(triggerObjectName + "_AUTOGEN");
+                _triggerGO.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
+                _triggerGO.AddComponent<BoxCollider>();
+                _triggerGO.SetActive(false);
             }
         }
     }

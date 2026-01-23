@@ -64,6 +64,20 @@ namespace RacingGame._Game.Scripts.PCG
 
         private void GenerateOnPlayIfWanted()
         {
+            var heightAmpModifier = PlayerPrefs.GetFloat("TrackHeightAmplitudeModifier", 1f);
+            var heightNoiseModifier = PlayerPrefs.GetFloat("TrackHeightNoiseScaleModifier", 1f);
+            var noiseModifier = PlayerPrefs.GetFloat("TrackNoiseModifier", 1f);
+            var radiusModifier = PlayerPrefs.GetFloat("TrackRadiusModifier", 1f);
+            var knotCountModifier = PlayerPrefs.GetFloat("TrackKnotCountModifier", 1f);
+            var tangentStrengthModifier = PlayerPrefs.GetFloat("TrackTangentStrengthModifier", 1f);
+
+            heightAmplitude *= heightAmpModifier;
+            heightNoiseScale *= heightNoiseModifier;
+            noise *= noiseModifier;
+            radius *= radiusModifier;
+            knotCount = Mathf.Max(4, Mathf.RoundToInt(knotCount * knotCountModifier));
+            tangentStrength *= tangentStrengthModifier;
+
             if (!randomizeSeedOnPlay && debugSeedOverride <= 0 && !useSavedSeed)
             {
                 // Use whatever seed is already set
